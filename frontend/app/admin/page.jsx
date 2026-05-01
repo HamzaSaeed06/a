@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Broadcast,
   CurrencyCircleDollar,
@@ -32,20 +33,24 @@ export default function AdminDashboard() {
     <DashboardLayout allowedRoles={["Admin", "Super Admin"]}>
       <PageHeader
         title="Auction Control Room"
-        subtitle="Operations dashboard for managing teams, players, pool readiness, and the live sale floor."
+        subtitle="Operations dashboard — teams, players, pool readiness, and live sale floor."
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-        <StatCard title="Teams" value={stats?.total_teams ?? "-"} icon={UsersThree} />
-        <StatCard title="Players" value={stats?.total_players ?? "-"} icon={Warehouse} />
-        <StatCard title="Sold Players" value={stats?.sold_players ?? "-"} icon={FlagBanner} tone="success" />
-        <StatCard title="Unsold" value={stats?.unsold_players ?? "-"} icon={Broadcast} />
-        <StatCard title="Total Bids" value={stats?.total_bids ?? "-"} icon={TrendUp} tone="accent" />
-        <StatCard title="Spend" value={formatCurrency(stats?.total_spent)} icon={CurrencyCircleDollar} tone="accent" />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        <StatCard title="Teams" value={stats?.total_teams ?? "—"} icon={UsersThree} />
+        <StatCard title="Players" value={stats?.total_players ?? "—"} icon={Warehouse} />
+        <StatCard title="Sold" value={stats?.sold_players ?? "—"} icon={FlagBanner} tone="success" />
+        <StatCard title="Unsold" value={stats?.unsold_players ?? "—"} icon={Broadcast} />
+        <StatCard title="Total Bids" value={stats?.total_bids ?? "—"} icon={TrendUp} tone="accent" />
+        <StatCard title="Total Spend" value={formatCurrency(stats?.total_spent)} icon={CurrencyCircleDollar} tone="accent" />
       </div>
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <SectionCard title="Recent Auction Activity" sub="Latest operational events across bids and sale actions." padded={false}>
+      <div className="mt-6 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+        <SectionCard
+          title="Recent Auction Activity"
+          sub="Latest bid events and sale actions across the floor."
+          padded={false}
+        >
           <div className="table-wrap">
             <table>
               <thead>
@@ -60,10 +65,15 @@ export default function AdminDashboard() {
               <tbody>
                 {log.length ? (
                   log.map((item, index) => (
-                    <tr key={`${item.log_time}-${index}`}>
-                      <td className="text-[var(--muted)]">{formatTime(item.log_time)}</td>
-                      <td className="font-semibold text-slate-900">{item.player_name || "-"}</td>
-                      <td>{item.team_name || "-"}</td>
+                    <motion.tr
+                      key={`${item.log_time}-${index}`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: index * 0.03 }}
+                    >
+                      <td className="text-white/35 text-xs">{formatTime(item.log_time)}</td>
+                      <td className="font-semibold text-white/90">{item.player_name || "—"}</td>
+                      <td className="text-white/55">{item.team_name || "—"}</td>
                       <td>
                         <span
                           className={`badge ${
@@ -77,14 +87,14 @@ export default function AdminDashboard() {
                           {item.action}
                         </span>
                       </td>
-                      <td className="font-semibold text-slate-900">
-                        {item.amount ? formatCurrency(item.amount) : "-"}
+                      <td className="font-semibold text-amber-400">
+                        {item.amount ? formatCurrency(item.amount) : "—"}
                       </td>
-                    </tr>
+                    </motion.tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-[var(--muted)]">
+                    <td colSpan={5} className="px-6 py-12 text-center text-white/30">
                       No activity logged yet.
                     </td>
                   </tr>
@@ -94,18 +104,21 @@ export default function AdminDashboard() {
           </div>
         </SectionCard>
 
-        <SectionCard
-          title="Execution Notes"
-          sub="Operational priorities for the auction floor."
-        >
-          <div className="grid gap-4">
+        <SectionCard title="Execution Notes" sub="Operational priorities for the auction floor.">
+          <div className="grid gap-3">
             {[
-              "Verify player pool order before starting live bidding.",
-              "Keep franchise budgets aligned with every sale event.",
-              "Use broadcast overlay to present player context during bidding rounds.",
+              { text: "Verify player pool order before starting live bidding.", icon: "01" },
+              { text: "Keep franchise budgets aligned with every sale event.", icon: "02" },
+              { text: "Use broadcast overlay to present player context during rounds.", icon: "03" },
             ].map((item) => (
-              <div key={item} className="rounded-[22px] border border-[var(--line)] bg-white/80 p-4 text-sm leading-7 text-[var(--muted)]">
-                {item}
+              <div
+                key={item.icon}
+                className="flex items-start gap-3 rounded-xl border border-white/[0.07] bg-white/[0.03] p-4"
+              >
+                <span className="shrink-0 rounded-lg border border-white/10 bg-white/[0.05] px-2 py-0.5 text-[0.6rem] font-bold text-white/30 tracking-widest">
+                  {item.icon}
+                </span>
+                <p className="text-sm leading-6 text-white/48">{item.text}</p>
               </div>
             ))}
           </div>

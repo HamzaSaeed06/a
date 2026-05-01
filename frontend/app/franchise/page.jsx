@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { CoinVertical, Cricket, UsersThree } from "@phosphor-icons/react";
 import DashboardLayout from "../components/DashboardLayout";
 import { EmptyState, PageHeader, SectionCard, StatCard } from "../components/UI";
@@ -32,57 +33,90 @@ export default function FranchisePage() {
     }, {});
   }, [squad]);
 
+  const budgetUsedPct = team?.total_budget
+    ? Math.round((totalSpent / Number(team.total_budget)) * 100)
+    : 0;
+
   return (
     <DashboardLayout allowedRoles={["Franchise"]}>
       <PageHeader
         title={team?.team_name || "Franchise Desk"}
-        subtitle={`Welcome ${user?.username || ""}. Track budget health, squad balance, and auction readiness from one place.`}
+        subtitle={`Welcome back, ${user?.username || ""}. Track budget health, squad balance, and auction readiness.`}
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Squad Size" value={squad.length} icon={UsersThree} />
         <StatCard title="Total Spent" value={formatCurrency(totalSpent)} icon={CoinVertical} tone="accent" />
         <StatCard title="Remaining Budget" value={formatCurrency(team?.remaining_budget)} icon={Cricket} tone="success" />
         <StatCard title="Total Budget" value={formatCurrency(team?.total_budget)} icon={CoinVertical} />
       </div>
 
-      <div className="mt-8">
+      {team?.total_budget ? (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-4 rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5"
+        >
+          <div className="mb-2.5 flex items-center justify-between">
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white/30">
+              Budget Utilisation
+            </p>
+            <p className="text-sm font-semibold text-amber-400">{budgetUsedPct}% used</p>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-white/[0.07]">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${budgetUsedPct}%` }}
+              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+              className={`h-full rounded-full ${budgetUsedPct > 80 ? "bg-red-400" : budgetUsedPct > 60 ? "bg-amber-400" : "bg-emerald-400"}`}
+            />
+          </div>
+        </motion.div>
+      ) : null}
+
+      <div className="mt-6">
         {Object.keys(squadByRole).length ? (
-          <div className="space-y-6">
-            {Object.entries(squadByRole).map(([role, players]) => (
-              <SectionCard
+          <div className="space-y-5">
+            {Object.entries(squadByRole).map(([role, players], groupIndex) => (
+              <motion.div
                 key={role}
-                title={role}
-                sub={`${players.length} player${players.length > 1 ? "s" : ""} in this role group.`}
-                padded={false}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: groupIndex * 0.07 }}
               >
-                <div className="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Player</th>
-                        <th>Country</th>
-                        <th>Batting</th>
-                        <th>Bowling</th>
-                        <th>Acquired For</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {players.map((player) => (
-                        <tr key={player.player_id}>
-                          <td className="font-semibold text-slate-950">{player.name}</td>
-                          <td>{player.country_name || "-"}</td>
-                          <td>{player.batting_style || "-"}</td>
-                          <td>{player.bowling_style || "-"}</td>
-                          <td className="font-semibold text-[var(--accent)]">
-                            {formatCurrency(player.final_price)}
-                          </td>
+                <SectionCard
+                  title={role}
+                  sub={`${players.length} player${players.length > 1 ? "s" : ""} in this role group.`}
+                  padded={false}
+                >
+                  <div className="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Player</th>
+                          <th>Country</th>
+                          <th>Batting</th>
+                          <th>Bowling</th>
+                          <th>Acquired For</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </SectionCard>
+                      </thead>
+                      <tbody>
+                        {players.map((player) => (
+                          <tr key={player.player_id}>
+                            <td className="font-semibold text-white/90">{player.name}</td>
+                            <td className="text-white/50">{player.country_name || "—"}</td>
+                            <td className="text-white/50">{player.batting_style || "—"}</td>
+                            <td className="text-white/50">{player.bowling_style || "—"}</td>
+                            <td className="font-semibold text-amber-400">
+                              {formatCurrency(player.final_price)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </SectionCard>
+              </motion.div>
             ))}
           </div>
         ) : (

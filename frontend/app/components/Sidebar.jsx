@@ -43,45 +43,70 @@ const FRANCHISE_LINKS = [
   { href: "/franchise/live-auction", label: "Live Bidding", icon: ArrowsLeftRight },
 ];
 
+function NavLink({ href, label, icon: Icon, active, collapsed }) {
+  return (
+    <Link href={href}>
+      <motion.div
+        whileHover={{ x: collapsed ? 0 : 2 }}
+        className={cn(
+          "relative flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-150",
+          collapsed ? "justify-center" : "",
+          active
+            ? "bg-amber-400/10 text-amber-400"
+            : "text-white/40 hover:bg-white/[0.05] hover:text-white/75",
+        )}
+      >
+        {active && (
+          <motion.div
+            layoutId="sidebar-active-indicator"
+            className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-amber-400"
+          />
+        )}
+        <Icon size={18} weight={active ? "fill" : "duotone"} className="shrink-0" />
+        <AnimatePresence>
+          {!collapsed ? (
+            <motion.span
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -4 }}
+              transition={{ duration: 0.15 }}
+              className="text-[0.825rem] font-medium"
+            >
+              {label}
+            </motion.span>
+          ) : null}
+        </AnimatePresence>
+      </motion.div>
+    </Link>
+  );
+}
+
 function NavGroup({ title, links, pathname, collapsed }) {
   return (
-    <div className="space-y-2">
-      {!collapsed ? (
-        <p className="px-3 text-[0.68rem] font-bold uppercase tracking-[0.2em] text-slate-400">
-          {title}
-        </p>
-      ) : null}
-
-      {links.map(({ href, label, icon: Icon }) => {
+    <div className="space-y-0.5">
+      <AnimatePresence>
+        {!collapsed ? (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="mb-2 px-3 text-[0.6rem] font-bold uppercase tracking-[0.22em] text-white/20"
+          >
+            {title}
+          </motion.p>
+        ) : null}
+      </AnimatePresence>
+      {links.map(({ href, label, icon }) => {
         const active = pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
-
         return (
-          <Link key={href} href={href}>
-            <motion.div
-              whileHover={{ x: 2 }}
-              className={cn(
-                "flex items-center gap-3 rounded-2xl border px-3 py-3 transition-all",
-                collapsed ? "justify-center" : "justify-start",
-                active
-                  ? "border-[rgba(15,118,110,0.22)] bg-[rgba(15,118,110,0.1)] text-[var(--accent)]"
-                  : "border-transparent text-slate-500 hover:border-[var(--line)] hover:bg-white/70 hover:text-slate-900",
-              )}
-            >
-              <Icon size={20} weight={active ? "fill" : "duotone"} />
-              <AnimatePresence>
-                {!collapsed ? (
-                  <motion.span
-                    initial={{ opacity: 0, x: -6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -6 }}
-                    className="text-sm font-medium"
-                  >
-                    {label}
-                  </motion.span>
-                ) : null}
-              </AnimatePresence>
-            </motion.div>
-          </Link>
+          <NavLink
+            key={href}
+            href={href}
+            label={label}
+            icon={icon}
+            active={active}
+            collapsed={collapsed}
+          />
         );
       })}
     </div>
@@ -100,52 +125,78 @@ export default function Sidebar() {
         { title: "Operations", links: ADMIN_LINKS },
       ];
     }
-
     if (user?.role === "Admin") {
       return [{ title: "Operations", links: ADMIN_LINKS }];
     }
-
     return [{ title: "Franchise", links: FRANCHISE_LINKS }];
   }, [user?.role]);
 
+  const roleColor =
+    user?.role === "Super Admin"
+      ? "text-purple-400 bg-purple-400/10 border-purple-400/20"
+      : user?.role === "Admin"
+        ? "text-amber-400 bg-amber-400/10 border-amber-400/20"
+        : "text-emerald-400 bg-emerald-400/10 border-emerald-400/20";
+
   return (
     <motion.aside
-      animate={{ width: collapsed ? 96 : 292 }}
-      transition={{ type: "spring", stiffness: 220, damping: 25 }}
-      className="glass-card sticky top-4 m-4 hidden h-[calc(100vh-2rem)] flex-col rounded-[32px] border border-white/70 p-4 lg:flex"
+      animate={{ width: collapsed ? 76 : 260 }}
+      transition={{ type: "spring", stiffness: 240, damping: 28 }}
+      className="sticky top-4 m-4 hidden h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0a0a12] shadow-[0_4px_40px_rgba(0,0,0,0.6)] lg:flex"
     >
-      <div className="relative overflow-hidden rounded-[28px] border border-[rgba(15,118,110,0.14)] bg-[linear-gradient(135deg,rgba(15,118,110,0.18),rgba(15,23,42,0.08))] p-4 text-slate-950">
-        <div className="ambient-ring -right-10 -top-10 h-24 w-24" />
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-slate-950 p-2.5 text-white shadow-lg">
-              <ShieldCheck size={22} weight="fill" />
-            </div>
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(245,158,11,0.04),transparent_60%)] pointer-events-none" />
+
+      <div className="relative p-4 pb-3">
+        <div className="flex items-center gap-3 overflow-hidden">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-400/10 border border-amber-400/20 text-amber-400">
+            <ShieldCheck size={18} weight="fill" />
+          </div>
+          <AnimatePresence>
             {!collapsed ? (
-              <div>
-                <p className="font-[var(--font-display)] text-lg font-bold tracking-[-0.04em]">
+              <motion.div
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -8 }}
+                className="min-w-0"
+              >
+                <p className="font-[var(--font-display)] text-[0.9rem] font-bold tracking-[-0.03em] text-white truncate">
                   Auction OS
                 </p>
-                <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-600">
-                  Formal command layer
+                <p className="text-[0.62rem] uppercase tracking-[0.2em] text-white/30">
+                  Command Layer
                 </p>
-              </div>
+              </motion.div>
             ) : null}
-          </div>
+          </AnimatePresence>
         </div>
-
-        {!collapsed ? (
-          <div className="rounded-2xl bg-white/75 p-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-              Signed in as
-            </p>
-            <p className="mt-1 truncate text-sm font-semibold text-slate-900">{user?.username}</p>
-            <p className="mt-1 text-xs text-slate-600">{user?.role}</p>
-          </div>
-        ) : null}
       </div>
 
-      <div className="mt-5 flex-1 space-y-6 overflow-y-auto pr-1">
+      <div className="mx-4 h-px bg-white/[0.06]" />
+
+      <AnimatePresence>
+        {!collapsed ? (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="px-4 py-3"
+          >
+            <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-3">
+              <p className="truncate text-[0.8rem] font-semibold text-white/80">{user?.username}</p>
+              <span
+                className={cn(
+                  "mt-1.5 inline-block rounded-md border px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.14em]",
+                  roleColor,
+                )}
+              >
+                {user?.role}
+              </span>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-4">
         {groups.map((group) => (
           <NavGroup
             key={group.title}
@@ -157,13 +208,45 @@ export default function Sidebar() {
         ))}
       </div>
 
-      <div className="mt-4 space-y-2">
-        <button className="btn-outline w-full" onClick={() => setCollapsed((value) => !value)}>
-          {collapsed ? "Expand" : "Compact"}
+      <div className="mx-4 h-px bg-white/[0.06]" />
+
+      <div className="p-3 space-y-1">
+        <button
+          className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.825rem] font-medium text-white/35 transition hover:bg-white/[0.05] hover:text-white/60"
+          onClick={() => setCollapsed((v) => !v)}
+        >
+          <motion.svg
+            animate={{ rotate: collapsed ? 180 : 0 }}
+            transition={{ duration: 0.25 }}
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            className="shrink-0"
+          >
+            <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </motion.svg>
+          <AnimatePresence>
+            {!collapsed ? (
+              <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                Collapse
+              </motion.span>
+            ) : null}
+          </AnimatePresence>
         </button>
-        <button className="btn-ghost w-full justify-center text-slate-600" onClick={logout}>
-          <SignOut size={18} />
-          {!collapsed ? "Sign out" : null}
+
+        <button
+          className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.825rem] font-medium text-white/35 transition hover:bg-red-500/[0.07] hover:text-red-400"
+          onClick={logout}
+        >
+          <SignOut size={16} className="shrink-0" />
+          <AnimatePresence>
+            {!collapsed ? (
+              <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                Sign out
+              </motion.span>
+            ) : null}
+          </AnimatePresence>
         </button>
       </div>
     </motion.aside>

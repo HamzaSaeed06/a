@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import {
   Broadcast,
   GlobeHemisphereWest,
@@ -29,7 +30,7 @@ export default function SuperAdminPage() {
   const quickLinks = [
     {
       href: "/super-admin/users",
-      title: "Identity and Roles",
+      title: "Identity & Roles",
       sub: "Create, suspend, and govern access across the platform.",
       icon: UserList,
     },
@@ -57,53 +58,61 @@ export default function SuperAdminPage() {
     <DashboardLayout allowedRoles={["Super Admin"]}>
       <PageHeader
         title="Platform Governance"
-        subtitle="Super admin workspace for access control, taxonomy, season governance, and full operational oversight."
+        subtitle="Super admin workspace — access control, taxonomy, season governance, and full operational oversight."
       />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Users" value={stats?.total_users ?? "-"} icon={UserList} tone="accent" />
-        <StatCard title="Active Users" value={stats?.active_users ?? "-"} icon={ShieldCheck} tone="success" />
-        <StatCard title="Teams" value={stats?.total_teams ?? "-"} icon={UsersThree} />
-        <StatCard title="Live Auctions" value={stats?.live_auctions ?? "-"} icon={Broadcast} tone="accent" />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard title="Users" value={stats?.total_users ?? "—"} icon={UserList} tone="accent" />
+        <StatCard title="Active Users" value={stats?.active_users ?? "—"} icon={ShieldCheck} tone="success" />
+        <StatCard title="Teams" value={stats?.total_teams ?? "—"} icon={UsersThree} />
+        <StatCard title="Live Auctions" value={stats?.live_auctions ?? "—"} icon={Broadcast} tone="accent" />
       </div>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Players" value={stats?.total_players ?? "-"} icon={Stack} />
-        <StatCard title="Countries" value={stats?.total_countries ?? "-"} icon={GlobeHemisphereWest} />
-        <StatCard title="Categories" value={stats?.total_categories ?? "-"} icon={Stack} />
-        <StatCard title="Seasons" value={stats?.total_seasons ?? "-"} icon={Broadcast} />
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard title="Players" value={stats?.total_players ?? "—"} icon={Stack} />
+        <StatCard title="Countries" value={stats?.total_countries ?? "—"} icon={GlobeHemisphereWest} />
+        <StatCard title="Categories" value={stats?.total_categories ?? "—"} icon={Stack} />
+        <StatCard title="Seasons" value={stats?.total_seasons ?? "—"} icon={Broadcast} />
       </div>
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <SectionCard
-          title="Governance Shortcuts"
-          sub="High-impact areas for super admin decision making."
-        >
-          <div className="grid gap-4 md:grid-cols-2">
-            {quickLinks.map(({ href, title, sub, icon: Icon }) => (
-              <Link key={href} href={href} className="group rounded-[26px] border border-[var(--line)] bg-white/80 p-5 transition hover:border-[rgba(15,118,110,0.22)] hover:bg-white">
-                <div className="mb-4 inline-flex rounded-2xl bg-[rgba(15,118,110,0.1)] p-3 text-[var(--accent)]">
-                  <Icon size={22} weight="duotone" />
-                </div>
-                <h3 className="text-lg font-semibold tracking-[-0.03em] text-slate-950">{title}</h3>
-                <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{sub}</p>
-              </Link>
+      <div className="mt-6 grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+        <SectionCard title="Governance Shortcuts" sub="High-impact areas for super admin decisions.">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {quickLinks.map(({ href, title, sub, icon: Icon }, index) => (
+              <motion.div
+                key={href}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.06 }}
+              >
+                <Link
+                  href={href}
+                  className="group block rounded-xl border border-white/[0.07] bg-white/[0.03] p-5 transition hover:border-amber-400/20 hover:bg-amber-400/[0.04]"
+                >
+                  <div className="mb-4 inline-flex rounded-xl border border-amber-400/20 bg-amber-400/10 p-2.5 text-amber-400 transition group-hover:bg-amber-400/15">
+                    <Icon size={18} weight="duotone" />
+                  </div>
+                  <h3 className="text-[0.9rem] font-bold tracking-[-0.025em] text-white/85 group-hover:text-white transition">{title}</h3>
+                  <p className="mt-1.5 text-xs leading-5 text-white/38">{sub}</p>
+                </Link>
+              </motion.div>
             ))}
           </div>
         </SectionCard>
 
-        <SectionCard
-          title="Privilege Model"
-          sub="Super admin now inherits the full admin control surface as well."
-        >
-          <div className="grid gap-4">
+        <SectionCard title="Privilege Model" sub="How super admin access is structured.">
+          <div className="grid gap-3">
             {[
               "All admin operations remain available to super admin users.",
               "Super admin can additionally govern users, countries, categories, and seasons.",
               "This keeps operational control centralized without splitting platform ownership.",
-            ].map((item) => (
-              <div key={item} className="rounded-[22px] border border-[var(--line)] bg-white/80 p-4 text-sm leading-7 text-[var(--muted)]">
-                {item}
+            ].map((item, index) => (
+              <div
+                key={index}
+                className="flex items-start gap-3 rounded-xl border border-white/[0.07] bg-white/[0.03] p-4"
+              >
+                <div className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400/60" />
+                <p className="text-sm leading-6 text-white/45">{item}</p>
               </div>
             ))}
           </div>

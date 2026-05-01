@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowClockwise,
   CaretRight,
@@ -17,11 +18,70 @@ import { apiFetch } from "../../lib/api";
 import { formatCurrency, formatTime } from "../../lib/format";
 import { getSocket } from "../../lib/socket";
 
+const TIMER_MAX = 15;
+
+function TimerRing({ timeLeft, isActive }) {
+  const size = 160;
+  const stroke = 5;
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const progress = Math.max(0, timeLeft / TIMER_MAX);
+  const dash = circ * progress;
+
+  const color =
+    timeLeft > 10 ? "#22c55e" : timeLeft > 5 ? "#f59e0b" : "#ef4444";
+  const glowClass =
+    timeLeft > 10 ? "timer-ring-green" : timeLeft > 5 ? "timer-ring-amber" : "timer-ring-red";
+  const textColor =
+    timeLeft > 10 ? "text-emerald-400" : timeLeft > 5 ? "text-amber-400" : "text-red-400";
+  const ringPulse =
+    timeLeft <= 5 && isActive ? "animate-pulse-ring" : timeLeft <= 10 && isActive ? "animate-pulse-ring-amber" : "";
+
+  return (
+    <div className={`relative flex items-center justify-center ${ringPulse}`}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="rgba(255,255,255,0.06)"
+          strokeWidth={stroke}
+        />
+        <motion.circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={circ - dash}
+          className={glowClass}
+          animate={{ strokeDashoffset: circ - dash }}
+          transition={{ duration: 0.4 }}
+        />
+      </svg>
+      <div className="absolute flex flex-col items-center">
+        <motion.p
+          key={timeLeft}
+          initial={{ scale: 1.18 }}
+          animate={{ scale: 1 }}
+          className={`font-[var(--font-display)] text-4xl font-bold tabular-nums ${textColor}`}
+        >
+          {timeLeft}
+        </motion.p>
+        <p className="text-[0.6rem] uppercase tracking-[0.22em] text-white/30 mt-0.5">seconds</p>
+      </div>
+    </div>
+  );
+}
+
 export default function LiveAuctionPage() {
   const [auction, setAuction] = useState(null);
   const [currentPlayer, setCurrentPlayer] = useState(null);
   const [pool, setPool] = useState([]);
-  const [timeLeft, setTimeLeft] = useState(15);
+  const [timeLeft, setTimeLeft] = useState(TIMER_MAX);
   const [isActive, setIsActive] = useState(false);
   const [highestBid, setHighestBid] = useState(0);
   const [highestBidder, setHighestBidder] = useState(null);
@@ -53,16 +113,11 @@ export default function LiveAuctionPage() {
       .catch(() => {});
 
   useEffect(() => {
-    const load = async () => {
-      await Promise.all([fetchStatus(), fetchPool(), fetchLog()]);
-    };
-
-    load();
+    Promise.all([fetchStatus(), fetchPool(), fetchLog()]);
   }, []);
 
   useEffect(() => {
     if (!auction) return;
-
     const socket = getSocket();
     socketRef.current = socket;
     socket.emit("join_auction", auction.auction_id);
@@ -73,15 +128,12 @@ export default function LiveAuctionPage() {
     });
     socket.on("timer_update", setTimeLeft);
     socket.on("auction_started", () => setIsActive(true));
-    socket.on("auction_timeout", () => {
-      setIsActive(false);
-      setTimeLeft(0);
-    });
+    socket.on("auction_timeout", () => { setIsActive(false); setTimeLeft(0); });
     socket.on("player_changed", (player) => {
       setCurrentPlayer(player);
       setHighestBid(Number(player.base_price));
       setHighestBidder(null);
-      setTimeLeft(15);
+      setTimeLeft(TIMER_MAX);
       setIsActive(false);
     });
 
@@ -109,9 +161,8 @@ export default function LiveAuctionPage() {
         setCurrentPlayer(status.current_player);
         setHighestBid(Number(status.current_player?.base_price || 0));
         setHighestBidder(null);
-        setTimeLeft(15);
+        setTimeLeft(TIMER_MAX);
         setIsActive(false);
-
         if (status.current_player && auction && socketRef.current) {
           socketRef.current.emit("admin_set_player", {
             auction_id: auction.auction_id,
@@ -143,7 +194,7 @@ export default function LiveAuctionPage() {
       await fetchLog();
       setHighestBidder(null);
       setIsActive(false);
-      setTimeLeft(15);
+      setTimeLeft(TIMER_MAX);
     } catch (error) {
       toast(error.message, "error");
     } finally {
@@ -162,7 +213,7 @@ export default function LiveAuctionPage() {
       await fetchLog();
       setHighestBidder(null);
       setIsActive(false);
-      setTimeLeft(15);
+      setTimeLeft(TIMER_MAX);
     } catch (error) {
       toast(error.message, "error");
     } finally {
@@ -170,15 +221,13 @@ export default function LiveAuctionPage() {
     }
   };
 
-  const timerTone =
-    timeLeft > 10 ? "text-[var(--success)] border-[var(--success)]" : timeLeft > 5 ? "text-[var(--accent)] border-[var(--accent)]" : "text-[var(--danger)] border-[var(--danger)]";
-
   return (
     <DashboardLayout allowedRoles={["Admin", "Super Admin"]}>
       <Toast toasts={toasts} removeToast={removeToast} />
       <PlayerStatsOverlay
         player={currentPlayer}
         visible={showOverlay}
+        onClose={() => setShowOverlay(false)}
         bidAmount={highestBid}
         bidder={highestBidder}
       />
@@ -188,17 +237,17 @@ export default function LiveAuctionPage() {
         subtitle={
           auction
             ? `${auction.auction_name} · Season ${auction.season}`
-            : "No auction season is active yet. Create one from the governance area."
+            : "No auction season active. Create one from Governance."
         }
         action={
           <>
             <button className="btn-outline" onClick={nextPlayer} disabled={loading}>
-              <CaretRight size={18} />
+              <CaretRight size={16} />
               Next Player
             </button>
             {currentPlayer ? (
               <button className="btn-primary" onClick={() => setShowOverlay(true)}>
-                <MonitorPlay size={18} />
+                <MonitorPlay size={16} />
                 Broadcast View
               </button>
             ) : null}
@@ -206,148 +255,207 @@ export default function LiveAuctionPage() {
         }
       />
 
-      <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
-        <div className="space-y-6">
-          <SectionCard title="Current Nomination" sub="Auctioneer focus card with live bid pressure and timer state.">
-            {currentPlayer ? (
-              <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-                <div className="rounded-[28px] border border-[var(--line)] bg-[linear-gradient(135deg,rgba(15,118,110,0.1),rgba(255,255,255,0.88))] p-6">
-                  <div className="flex flex-col gap-5 md:flex-row md:items-center">
-                    <div className="h-28 w-28 overflow-hidden rounded-[26px] border border-[var(--line)] bg-white">
-                      {currentPlayer.image_url ? (
-                        <img
-                          src={currentPlayer.image_url.startsWith("/") ? currentPlayer.image_url : `/uploads/${currentPlayer.image_url}`}
-                          alt={currentPlayer.name}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-[var(--accent)]">
-                          <Trophy size={36} weight="duotone" />
+      <div className="grid gap-5 xl:grid-cols-[1.12fr_0.88fr]">
+        <div className="space-y-5">
+          <SectionCard
+            title="Current Nomination"
+            sub="Focus card with live bid pressure and countdown state."
+          >
+            <AnimatePresence mode="wait">
+              {currentPlayer ? (
+                <motion.div
+                  key={currentPlayer.player_id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="space-y-5"
+                >
+                  <div className="grid gap-5 lg:grid-cols-[1fr_auto]">
+                    <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[linear-gradient(135deg,rgba(245,158,11,0.07),rgba(255,255,255,0.025))] p-5">
+                      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/30 to-transparent" />
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.06]">
+                          {currentPlayer.image_url ? (
+                            <img
+                              src={currentPlayer.image_url.startsWith("/") ? currentPlayer.image_url : `/uploads/${currentPlayer.image_url}`}
+                              alt={currentPlayer.name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-amber-400/60">
+                              <Trophy size={32} weight="duotone" />
+                            </div>
+                          )}
                         </div>
-                      )}
+                        <div className="flex-1">
+                          <h2 className="font-[var(--font-display)] text-3xl font-bold tracking-[-0.05em] text-white leading-tight">
+                            {currentPlayer.name}
+                          </h2>
+                          <p className="mt-1.5 text-sm text-white/45">
+                            {currentPlayer.role || "Player"} · {currentPlayer.country_name || "Unknown"}
+                          </p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <span className="badge badge-neutral">{currentPlayer.category_name || "Open"}</span>
+                            <span className="badge badge-gold">Base {formatCurrency(currentPlayer.base_price)}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex-1">
-                      <h2 className="font-[var(--font-display)] text-4xl font-bold tracking-[-0.06em] text-slate-950">
-                        {currentPlayer.name}
-                      </h2>
-                      <p className="mt-2 text-sm text-[var(--muted)]">
-                        {currentPlayer.role || "Player"} · {currentPlayer.country_name || "Unassigned country"}
-                      </p>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <span className="badge badge-neutral">{currentPlayer.category_name || "Open category"}</span>
-                        <span className="badge badge-accent">Base {formatCurrency(currentPlayer.base_price)}</span>
+                    <div className="flex items-center justify-center lg:py-0">
+                      <div className="flex flex-col items-center">
+                        <TimerRing timeLeft={timeLeft} isActive={isActive} />
+                        <p className="mt-3 text-[0.65rem] uppercase tracking-[0.2em] text-white/30">
+                          {isActive ? "Counting down" : "Clock stopped"}
+                        </p>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="grid gap-4">
-                  <div className="rounded-[28px] border border-[var(--line)] bg-white p-6">
-                    <p className="text-[0.72rem] font-bold uppercase tracking-[0.18em] text-slate-400">
-                      Current Bid
-                    </p>
-                    <p className="kpi-value mt-3 text-5xl font-bold text-slate-950">
-                      {formatCurrency(highestBid || currentPlayer.base_price)}
-                    </p>
-                    <p className="mt-3 text-sm text-[var(--muted)]">
-                      {highestBidder ? `Leading team: ${highestBidder.team_name}` : "No bid leader yet"}
-                    </p>
-                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <motion.div
+                      key={highestBid}
+                      initial={{ scale: 1.04 }}
+                      animate={{ scale: 1 }}
+                      className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.03] p-5"
+                    >
+                      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/20 to-transparent" />
+                      <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white/30">
+                        Current Bid
+                      </p>
+                      <p className="kpi-value mt-3 text-4xl font-bold text-amber-400">
+                        {formatCurrency(highestBid || currentPlayer.base_price)}
+                      </p>
+                      <p className="mt-2 text-xs text-white/40">
+                        {highestBidder
+                          ? `Leading: ${highestBidder.team_name}`
+                          : "No bids placed yet"}
+                      </p>
+                    </motion.div>
 
-                  <div className={`rounded-full border-4 bg-white p-6 text-center ${timerTone}`}>
-                    <Timer size={24} className="mx-auto" />
-                    <p className="kpi-value mt-3 text-5xl font-bold">{timeLeft}</p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">seconds left</p>
+                    <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-5">
+                      <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white/30">
+                        Lot Status
+                      </p>
+                      <div className="mt-3 flex items-center gap-2">
+                        <div className={`h-2 w-2 rounded-full ${isActive ? "bg-emerald-400 animate-pulse" : "bg-white/20"}`} />
+                        <p className="text-sm font-semibold text-white/75">
+                          {isActive ? "Bidding live" : "Awaiting start"}
+                        </p>
+                      </div>
+                      <p className="mt-2 text-xs text-white/40">
+                        Pool waiting: {pool.length} players
+                      </p>
+                    </div>
                   </div>
+                </motion.div>
+              ) : (
+                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.1] bg-white/[0.02] py-14 text-center">
+                  <Timer size={28} className="text-white/20 mb-3" weight="duotone" />
+                  <p className="text-sm text-white/35">
+                    Press <span className="font-semibold text-white/60">Next Player</span> to begin nominations.
+                  </p>
                 </div>
-              </div>
-            ) : (
-              <div className="rounded-[24px] border border-dashed border-[var(--line-strong)] bg-white/70 px-6 py-16 text-center text-[var(--muted)]">
-                Use <span className="font-semibold text-slate-950">Next Player</span> to start the next nomination.
-              </div>
-            )}
+              )}
+            </AnimatePresence>
           </SectionCard>
 
-          {currentPlayer ? (
-            <SectionCard
-              title="Auction Controls"
-              sub="Drive timer state and final player outcome from here."
-            >
-              <div className="flex flex-wrap gap-3">
-                <button className="btn-primary" onClick={startClock} disabled={isActive || loading}>
-                  <Timer size={18} />
-                  Start Clock
-                </button>
-                <button className="btn-primary" onClick={sellPlayer} disabled={loading}>
-                  <CheckCircle size={18} />
-                  Mark Sold
-                </button>
-                <button className="btn-outline" onClick={reAuction} disabled={loading}>
-                  <ArrowClockwise size={18} />
-                  Re-auction
-                </button>
-                <button className="btn-danger" onClick={nextPlayer} disabled={loading}>
-                  <SkipForward size={18} />
-                  Skip as Unsold
-                </button>
-              </div>
-            </SectionCard>
-          ) : null}
+          <AnimatePresence>
+            {currentPlayer ? (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+              >
+                <SectionCard
+                  title="Auction Controls"
+                  sub="Drive timer state and final player outcome."
+                >
+                  <div className="flex flex-wrap gap-2.5">
+                    <button className="btn-primary" onClick={startClock} disabled={isActive || loading}>
+                      <Timer size={16} />
+                      Start Clock
+                    </button>
+                    <button className="btn-primary" onClick={sellPlayer} disabled={loading}>
+                      <CheckCircle size={16} />
+                      Mark Sold
+                    </button>
+                    <button className="btn-outline" onClick={reAuction} disabled={loading}>
+                      <ArrowClockwise size={16} />
+                      Re-auction
+                    </button>
+                    <button className="btn-danger" onClick={nextPlayer} disabled={loading}>
+                      <SkipForward size={16} />
+                      Skip as Unsold
+                    </button>
+                  </div>
+                </SectionCard>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </div>
 
-        <div className="space-y-6">
-          <SectionCard title={`Waiting Pool (${pool.length})`} padded={false}>
-            <div className="max-h-[420px] overflow-y-auto">
+        <div className="space-y-5">
+          <SectionCard title={`Waiting Pool · ${pool.length}`} padded={false}>
+            <div className="max-h-[400px] overflow-y-auto">
               {pool.length ? (
-                pool.map((item) => (
-                  <div
+                pool.map((item, index) => (
+                  <motion.div
                     key={item.pool_id}
-                    className="flex items-center justify-between border-b border-[var(--line)] px-6 py-4 last:border-b-0"
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                    className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5 last:border-b-0 hover:bg-white/[0.025] transition"
                   >
                     <div>
-                      <p className="font-semibold text-slate-950">{item.name}</p>
-                      <p className="mt-1 text-sm text-[var(--muted)]">
+                      <p className="text-sm font-semibold text-white/85">{item.name}</p>
+                      <p className="mt-0.5 text-xs text-white/35">
                         Lot #{item.lot_number} · {item.role}
                       </p>
                     </div>
-                    <div className="text-sm font-semibold text-[var(--accent)]">
+                    <span className="text-xs font-semibold text-amber-400">
                       {formatCurrency(item.base_price)}
-                    </div>
-                  </div>
+                    </span>
+                  </motion.div>
                 ))
               ) : (
-                <div className="px-6 py-12 text-center text-[var(--muted)]">No waiting players remain.</div>
+                <div className="px-5 py-10 text-center text-sm text-white/28">
+                  No waiting players remain.
+                </div>
               )}
             </div>
           </SectionCard>
 
           <SectionCard title="Auction Log" padded={false}>
-            <div className="max-h-[420px] overflow-y-auto">
+            <div className="max-h-[400px] overflow-y-auto">
               {log.length ? (
                 log.map((item, index) => (
                   <div
                     key={`${item.log_time}-${index}`}
-                    className="border-b border-[var(--line)] px-6 py-4 last:border-b-0"
+                    className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5 last:border-b-0"
                   >
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <p className="font-semibold text-slate-950">{item.player_name || "System event"}</p>
-                        <p className="mt-1 text-sm text-[var(--muted)]">
-                          {item.team_name || "No team"} · {formatTime(item.log_time)}
+                    <div>
+                      <p className="text-sm font-semibold text-white/80">{item.player_name || "System event"}</p>
+                      <p className="mt-0.5 text-xs text-white/32">
+                        {item.team_name || "—"} · {formatTime(item.log_time)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`badge ${item.action === "SOLD" ? "badge-success" : item.action === "UNSOLD" ? "badge-danger" : "badge-neutral"}`}>
+                        {item.action}
+                      </span>
+                      {item.amount ? (
+                        <p className="mt-1.5 text-xs font-semibold text-amber-400">
+                          {formatCurrency(item.amount)}
                         </p>
-                      </div>
-                      <div className="text-right">
-                        <span className="badge badge-neutral">{item.action}</span>
-                        <p className="mt-2 text-sm font-semibold text-[var(--accent)]">
-                          {item.amount ? formatCurrency(item.amount) : "-"}
-                        </p>
-                      </div>
+                      ) : null}
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="px-6 py-12 text-center text-[var(--muted)]">No activity recorded yet.</div>
+                <div className="px-5 py-10 text-center text-sm text-white/28">
+                  No activity recorded yet.
+                </div>
               )}
             </div>
           </SectionCard>

@@ -21,12 +21,10 @@ export default function DashboardLayout({ children, allowedRoles }) {
 
   useEffect(() => {
     if (loading) return;
-
     if (!user) {
       router.push("/");
       return;
     }
-
     if (allowedRoles && !allowedRoles.includes(user.role)) {
       router.push(redirectByRole(user.role));
     }
@@ -34,8 +32,8 @@ export default function DashboardLayout({ children, allowedRoles }) {
 
   if (loading || !user) {
     return (
-      <div className="app-shell flex min-h-screen items-center justify-center">
-        <Spinner size={34} />
+      <div className="flex min-h-screen items-center justify-center">
+        <Spinner size={32} />
       </div>
     );
   }
@@ -49,11 +47,12 @@ export default function DashboardLayout({ children, allowedRoles }) {
       <Sidebar />
       <motion.main
         key={pathname}
-        initial={{ opacity: 0, y: 18 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="min-h-screen flex-1 px-4 py-4 lg:px-0 lg:py-4 lg:pr-4"
+        transition={{ duration: 0.22 }}
+        className="min-h-screen flex-1 p-4 lg:pl-0"
       >
-        <div className="glass-card min-h-[calc(100vh-2rem)] rounded-[32px] p-5 md:p-7 lg:p-8">
+        <div className="min-h-[calc(100vh-2rem)] rounded-2xl border border-white/[0.07] bg-[rgba(255,255,255,0.025)] p-5 md:p-6 lg:p-7 backdrop-blur-sm">
           {children}
         </div>
       </motion.main>
