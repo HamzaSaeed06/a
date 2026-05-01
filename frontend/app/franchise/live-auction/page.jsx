@@ -37,7 +37,7 @@ function MiniTimer({ timeLeft, isActive }) {
         />
       </div>
       <div className="flex items-center justify-between w-full">
-        <p className={`font-[var(--font-display)] text-2xl font-bold tabular-nums ${timeLeft > 10 ? "text-emerald-400" : timeLeft > 5 ? "text-amber-400" : "text-red-400"}`}>
+        <p className={`text-2xl font-bold tabular-nums ${timeLeft > 10 ? "text-emerald-400" : timeLeft > 5 ? "text-amber-400" : "text-red-400"}`}>
           {timeLeft}
         </p>
         <p className="text-[0.6rem] uppercase tracking-[0.2em] text-white/30">
@@ -214,7 +214,7 @@ export default function FranchiseLiveAuction() {
                           )}
                         </div>
                         <div className="flex-1">
-                          <h2 className="font-[var(--font-display)] text-2xl font-bold tracking-[-0.04em] text-white">
+                          <h2 className="text-2xl font-bold tracking-[-0.04em] text-white">
                             {currentPlayer.name}
                           </h2>
                           <p className="mt-1 text-sm text-white/42">

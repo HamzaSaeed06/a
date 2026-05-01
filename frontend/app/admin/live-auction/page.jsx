@@ -67,7 +67,7 @@ function TimerRing({ timeLeft, isActive }) {
           key={timeLeft}
           initial={{ scale: 1.18 }}
           animate={{ scale: 1 }}
-          className={`font-[var(--font-display)] text-4xl font-bold tabular-nums ${textColor}`}
+          className={`text-4xl font-bold tabular-nums ${textColor}`}
         >
           {timeLeft}
         </motion.p>
@@ -288,7 +288,7 @@ export default function LiveAuctionPage() {
                           )}
                         </div>
                         <div className="flex-1">
-                          <h2 className="font-[var(--font-display)] text-3xl font-bold tracking-[-0.05em] text-white leading-tight">
+                          <h2 className="text-3xl font-bold tracking-[-0.05em] text-white leading-tight">
                             {currentPlayer.name}
                           </h2>
                           <p className="mt-1.5 text-sm text-white/45">

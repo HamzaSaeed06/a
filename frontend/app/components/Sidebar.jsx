@@ -159,7 +159,7 @@ export default function Sidebar() {
                 exit={{ opacity: 0, x: -8 }}
                 className="min-w-0"
               >
-                <p className="font-[var(--font-display)] text-[0.9rem] font-bold tracking-[-0.03em] text-white truncate">
+                <p className="text-[0.9rem] font-bold tracking-[-0.03em] text-white truncate">
                   Auction OS
                 </p>
                 <p className="text-[0.62rem] uppercase tracking-[0.2em] text-white/30">

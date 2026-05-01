@@ -77,7 +77,7 @@ export default function PlayerStatsOverlay({ player, visible, onClose, bidAmount
                     )}
                   </div>
                   <div>
-                    <h2 className="font-[var(--font-display)] text-3xl font-bold tracking-[-0.05em] text-white">
+                    <h2 className="text-3xl font-bold tracking-[-0.05em] text-white">
                       {player.name}
                     </h2>
                     <div className="mt-3 flex flex-wrap gap-2">

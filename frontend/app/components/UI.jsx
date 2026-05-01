@@ -14,9 +14,9 @@ import { cn } from "../lib/format";
 export function StatCard({ title, value, sub, icon: Icon, tone = "default" }) {
   const toneClasses =
     tone === "accent"
-      ? "bg-[rgba(245,158,11,0.12)] text-amber-400 border border-[rgba(245,158,11,0.18)]"
+      ? "bg-[rgba(212,146,42,0.1)] text-[#f0aa3a] border border-[rgba(212,146,42,0.18)]"
       : tone === "success"
-        ? "bg-[rgba(34,197,94,0.12)] text-emerald-400 border border-[rgba(34,197,94,0.18)]"
+        ? "bg-[rgba(34,197,94,0.1)] text-[#4ade80] border border-[rgba(34,197,94,0.18)]"
         : "bg-white/[0.06] text-white/60 border border-white/10";
 
   return (
@@ -132,8 +132,8 @@ export function Spinner({ size = 20 }) {
   return (
     <motion.div
       animate={{ rotate: 360 }}
-      transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
-      className="rounded-full border-2 border-white/10 border-t-amber-400"
+      transition={{ duration: 0.75, repeat: Infinity, ease: "linear" }}
+      className="rounded-full border-[1.5px] border-white/10 border-t-white/70"
       style={{ width: size, height: size }}
     />
   );
