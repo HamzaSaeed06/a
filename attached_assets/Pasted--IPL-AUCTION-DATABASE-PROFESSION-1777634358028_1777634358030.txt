@@ -1,0 +1,1111 @@
+-- ============================================================
+-- IPL AUCTION DATABASE — PROFESSIONAL UPGRADED VERSION
+-- University Project | BBSUL | DBMS Lab
+-- ============================================================
+
+DROP DATABASE IF EXISTS IPL_Auction_DB;
+CREATE DATABASE IPL_Auction_DB;
+USE IPL_Auction_DB;
+
+-- ============================================================
+-- SECTION 1: TABLE CREATION
+-- ============================================================
+
+-- Player Category (Batsman, Bowler, Allrounder)
+CREATE TABLE Player_Category (
+    category_id   INT AUTO_INCREMENT PRIMARY KEY,
+    category_name VARCHAR(50) UNIQUE NOT NULL,
+    min_price     DECIMAL(12,2) NOT NULL CHECK (min_price >= 0),
+    max_price     DECIMAL(12,2) NOT NULL,
+    CHECK (max_price >= min_price)
+);
+
+-- Countries
+CREATE TABLE Countries (
+    country_id   INT AUTO_INCREMENT PRIMARY KEY,
+    country_name VARCHAR(60) UNIQUE NOT NULL,
+    region       VARCHAR(50)
+);
+
+-- Players
+CREATE TABLE Players (
+    player_id   INT AUTO_INCREMENT PRIMARY KEY,
+    name        VARCHAR(100) NOT NULL,
+    age         INT CHECK (age BETWEEN 15 AND 55),
+    role        VARCHAR(50),
+    base_price  DECIMAL(12,2) NOT NULL CHECK (base_price >= 0),
+    country_id  INT,
+    status      ENUM('unsold','sold','withdrawn') DEFAULT 'unsold',
+    category_id INT,
+    batting_style  VARCHAR(30),
+    bowling_style  VARCHAR(50),
+    FOREIGN KEY (category_id) REFERENCES Player_Category(category_id) ON DELETE SET NULL,
+    FOREIGN KEY (country_id)  REFERENCES Countries(country_id) ON DELETE SET NULL
+);
+
+-- Teams
+CREATE TABLE Teams (
+    team_id          INT AUTO_INCREMENT PRIMARY KEY,
+    team_name        VARCHAR(100) UNIQUE NOT NULL,
+    city             VARCHAR(60),
+    home_ground      VARCHAR(100),
+    total_budget     DECIMAL(15,2) NOT NULL,
+    remaining_budget DECIMAL(15,2) NOT NULL,
+    owner_name       VARCHAR(100)
+);
+
+-- Coaches
+CREATE TABLE Coaches (
+    coach_id   INT AUTO_INCREMENT PRIMARY KEY,
+    name       VARCHAR(100) NOT NULL,
+    role       VARCHAR(60),
+    team_id    INT,
+    FOREIGN KEY (team_id) REFERENCES Teams(team_id) ON DELETE SET NULL
+);
+
+-- Auction Seasons
+CREATE TABLE Auction (
+    auction_id   INT AUTO_INCREMENT PRIMARY KEY,
+    season       YEAR UNIQUE NOT NULL,
+    auction_date DATE NOT NULL,
+    venue        VARCHAR(100),
+    total_players_auctioned INT DEFAULT 0
+);
+
+-- Bids (every bid placed)
+CREATE TABLE Bids (
+    bid_id     INT AUTO_INCREMENT PRIMARY KEY,
+    player_id  INT,
+    team_id    INT,
+    auction_id INT,
+    bid_amount DECIMAL(12,2) NOT NULL CHECK (bid_amount > 0),
+    bid_time   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (player_id)  REFERENCES Players(player_id)  ON DELETE CASCADE,
+    FOREIGN KEY (team_id)    REFERENCES Teams(team_id)      ON DELETE CASCADE,
+    FOREIGN KEY (auction_id) REFERENCES Auction(auction_id) ON DELETE CASCADE
+);
+
+-- Player Sale (final sold record)
+CREATE TABLE Player_Sale (
+    sale_id    INT AUTO_INCREMENT PRIMARY KEY,
+    player_id  INT UNIQUE,
+    team_id    INT,
+    auction_id INT,
+    final_price DECIMAL(12,2) NOT NULL,
+    sold_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (player_id)  REFERENCES Players(player_id)  ON DELETE CASCADE,
+    FOREIGN KEY (team_id)    REFERENCES Teams(team_id)      ON DELETE CASCADE,
+    FOREIGN KEY (auction_id) REFERENCES Auction(auction_id) ON DELETE CASCADE
+);
+
+-- Team Squad (which player is in which team for which season)
+CREATE TABLE Team_Squad (
+    squad_id   INT AUTO_INCREMENT PRIMARY KEY,
+    team_id    INT,
+    player_id  INT,
+    season     YEAR,
+    jersey_no  INT,
+    UNIQUE (team_id, player_id, season),
+    FOREIGN KEY (team_id)   REFERENCES Teams(team_id),
+    FOREIGN KEY (player_id) REFERENCES Players(player_id)
+);
+
+-- Player Stats (career/season statistics)
+CREATE TABLE Player_Stats (
+    stat_id      INT AUTO_INCREMENT PRIMARY KEY,
+    player_id    INT UNIQUE,
+    matches      INT DEFAULT 0,
+    runs_scored  INT DEFAULT 0,
+    wickets      INT DEFAULT 0,
+    centuries    INT DEFAULT 0,
+    avg_score    DECIMAL(6,2) DEFAULT 0.00,
+    strike_rate  DECIMAL(6,2) DEFAULT 0.00,
+    economy_rate DECIMAL(5,2) DEFAULT 0.00,
+    FOREIGN KEY (player_id) REFERENCES Players(player_id) ON DELETE CASCADE
+);
+
+-- Auction Log (audit trail)
+CREATE TABLE Auction_Log (
+    log_id     INT AUTO_INCREMENT PRIMARY KEY,
+    action     VARCHAR(100),
+    player_id  INT,
+    team_id    INT,
+    amount     DECIMAL(12,2),
+    log_time   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================
+-- SECTION 2: INDEXES FOR PERFORMANCE
+-- ============================================================
+
+CREATE INDEX idx_bid_player    ON Bids(player_id);
+CREATE INDEX idx_bid_team      ON Bids(team_id);
+CREATE INDEX idx_bid_auction   ON Bids(auction_id);
+CREATE INDEX idx_player_status ON Players(status);
+CREATE INDEX idx_player_cat    ON Players(category_id);
+CREATE INDEX idx_sale_team     ON Player_Sale(team_id);
+CREATE INDEX idx_squad_season  ON Team_Squad(season);
+
+-- ============================================================
+-- SECTION 3: DATA INSERTION
+-- ============================================================
+
+-- Countries
+INSERT INTO Countries (country_name, region) VALUES
+('India','South Asia'),
+('Pakistan','South Asia'),
+('Australia','Oceania'),
+('England','Europe'),
+('West Indies','Caribbean'),
+('South Africa','Africa'),
+('New Zealand','Oceania'),
+('Sri Lanka','South Asia'),
+('Bangladesh','South Asia'),
+('Afghanistan','South Asia');
+
+-- Player Categories
+INSERT INTO Player_Category (category_name, min_price, max_price) VALUES
+('Batsman',   200000, 20000000),
+('Bowler',    200000, 20000000),
+('Allrounder',300000, 20000000),
+('Wicket Keeper', 200000, 15000000);
+
+-- Teams
+INSERT INTO Teams (team_name, city, home_ground, total_budget, remaining_budget, owner_name) VALUES
+('Mumbai Indians',      'Mumbai',    'Wankhede Stadium',          95000000, 95000000, 'Mukesh Ambani'),
+('Chennai Super Kings', 'Chennai',   'MA Chidambaram Stadium',    95000000, 95000000, 'N Srinivasan'),
+('Royal Challengers',   'Bengaluru', 'M. Chinnaswamy Stadium',    95000000, 95000000, 'Vijaymallya Group'),
+('Kolkata Knight Riders','Kolkata',  'Eden Gardens',              95000000, 95000000, 'Shah Rukh Khan'),
+('Delhi Capitals',      'Delhi',     'Arun Jaitley Stadium',      95000000, 95000000, 'GMR Group'),
+('Rajasthan Royals',    'Jaipur',    'Sawai Mansingh Stadium',     95000000, 95000000, 'Manoj Badale'),
+('Punjab Kings',        'Mohali',    'PCA IS Bindra Stadium',     95000000, 95000000, 'Ness Wadia'),
+('Sunrisers Hyderabad', 'Hyderabad', 'Rajiv Gandhi Intl Stadium', 95000000, 95000000, 'Sun TV Network'),
+('Lucknow Super Giants','Lucknow',   'BRSABV Ekana Stadium',      95000000, 95000000, 'RPSG Group'),
+('Gujarat Titans',      'Ahmedabad', 'Narendra Modi Stadium',     95000000, 95000000, 'CVC Capital');
+
+-- Coaches
+INSERT INTO Coaches (name, role, team_id) VALUES
+('Mark Boucher',   'Head Coach',    1),
+('Stephen Fleming','Head Coach',    2),
+('Andy Flower',    'Head Coach',    3),
+('Chandrakant Pandit','Head Coach', 4),
+('Ricky Ponting',  'Head Coach',    5),
+('Kumar Sangakkara','Head Coach',   6),
+('Trevor Bayliss', 'Head Coach',    7),
+('Daniel Vettori', 'Head Coach',    8),
+('Gautam Gambhir', 'Head Coach',    9),
+('Ashish Nehra',   'Head Coach',   10);
+
+-- Players (50 players)
+INSERT INTO Players (name, age, role, base_price, country_id, category_id, batting_style, bowling_style) VALUES
+-- BATSMEN (category_id = 1)
+('Virat Kohli',        35, 'Batsman',        2000000, 1, 1, 'Right Hand', NULL),
+('Rohit Sharma',       36, 'Batsman',        1800000, 1, 1, 'Right Hand', NULL),
+('Babar Azam',         29, 'Batsman',        1500000, 2, 1, 'Right Hand', NULL),
+('David Warner',       37, 'Batsman',        1600000, 3, 1, 'Left Hand',  NULL),
+('Kane Williamson',    33, 'Batsman',        1500000, 7, 1, 'Right Hand', NULL),
+('Steve Smith',        34, 'Batsman',        1500000, 3, 1, 'Right Hand', NULL),
+('Faf du Plessis',     39, 'Batsman',        1200000, 6, 1, 'Right Hand', NULL),
+('KL Rahul',           31, 'Batsman',        1800000, 1, 1, 'Right Hand', NULL),
+('Shubman Gill',       24, 'Batsman',        1400000, 1, 1, 'Right Hand', NULL),
+('Quinton de Kock',    30, 'Wicket Keeper',  1500000, 6, 4, 'Left Hand',  NULL),
+('Jos Buttler',        33, 'Wicket Keeper',  1500000, 4, 4, 'Right Hand', NULL),
+('Ishan Kishan',       25, 'Wicket Keeper',  1200000, 1, 4, 'Left Hand',  NULL),
+('Devon Conway',       32, 'Wicket Keeper',  1000000, 7, 4, 'Left Hand',  NULL),
+('Rishabh Pant',       26, 'Wicket Keeper',  1600000, 1, 4, 'Left Hand',  NULL),
+-- BOWLERS (category_id = 2)
+('Jasprit Bumrah',     30, 'Bowler',         2000000, 1, 2, 'Right Hand', 'Right Arm Fast'),
+('Shaheen Afridi',     24, 'Bowler',         2000000, 2, 2, 'Left Hand',  'Left Arm Fast'),
+('Mitchell Starc',     34, 'Bowler',         2000000, 3, 2, 'Left Hand',  'Left Arm Fast'),
+('Trent Boult',        34, 'Bowler',         1600000, 7, 2, 'Right Hand', 'Left Arm Fast'),
+('Kagiso Rabada',      28, 'Bowler',         1800000, 6, 2, 'Right Hand', 'Right Arm Fast'),
+('Pat Cummins',        31, 'Bowler',         2000000, 3, 2, 'Right Hand', 'Right Arm Fast'),
+('Rashid Khan',        25, 'Bowler',         1800000,10, 2, 'Right Hand', 'Right Arm Leg Spin'),
+('Yuzvendra Chahal',   33, 'Bowler',         1200000, 1, 2, 'Right Hand', 'Right Arm Leg Spin'),
+('Ravichandran Ashwin',37, 'Bowler',         1500000, 1, 2, 'Right Hand', 'Right Arm Off Spin'),
+('Wanindu Hasaranga',  26, 'Bowler',         1400000, 8, 2, 'Right Hand', 'Right Arm Leg Spin'),
+('Josh Hazlewood',     33, 'Bowler',         1500000, 3, 2, 'Right Hand', 'Right Arm Fast'),
+('Mohammed Shami',     33, 'Bowler',         1600000, 1, 2, 'Right Hand', 'Right Arm Fast'),
+('Haris Rauf',         30, 'Bowler',         1200000, 2, 2, 'Right Hand', 'Right Arm Fast'),
+('Bhuvneshwar Kumar',  33, 'Bowler',         1200000, 1, 2, 'Right Hand', 'Right Arm Medium'),
+('Dushmantha Chameera',31, 'Bowler',         900000,  8, 2, 'Right Hand', 'Right Arm Fast'),
+('Alzarri Joseph',     27, 'Bowler',         1000000, 5, 2, 'Right Hand', 'Right Arm Fast'),
+-- ALLROUNDERS (category_id = 3)
+('Ben Stokes',         33, 'Allrounder',     2000000, 4, 3, 'Left Hand',  'Right Arm Fast Medium'),
+('Hardik Pandya',      31, 'Allrounder',     2000000, 1, 3, 'Right Hand', 'Right Arm Fast Medium'),
+('Shakib Al Hasan',    36, 'Allrounder',     1500000, 9, 3, 'Left Hand',  'Left Arm Spin'),
+('Axar Patel',         30, 'Allrounder',     1200000, 1, 3, 'Left Hand',  'Left Arm Spin'),
+('Ravindra Jadeja',    35, 'Allrounder',     1800000, 1, 3, 'Left Hand',  'Left Arm Spin'),
+('Mitchell Marsh',     32, 'Allrounder',     1500000, 3, 3, 'Right Hand', 'Right Arm Fast Medium'),
+('Liam Livingstone',   31, 'Allrounder',     1400000, 4, 3, 'Right Hand', 'Right Arm Off Spin'),
+('Chris Green',        29, 'Allrounder',     800000,  3, 3, 'Left Hand',  'Left Arm Off Spin'),
+('Moeen Ali',          37, 'Allrounder',     1200000, 4, 3, 'Right Hand', 'Right Arm Off Spin'),
+('Jason Holder',       32, 'Allrounder',     1300000, 5, 3, 'Right Hand', 'Right Arm Fast Medium'),
+('Daryl Mitchell',     32, 'Allrounder',     1000000, 7, 3, 'Right Hand', 'Right Arm Medium'),
+('Marcus Stoinis',     34, 'Allrounder',     1200000, 3, 3, 'Right Hand', 'Right Arm Fast Medium'),
+('Romario Shepherd',   28, 'Allrounder',     700000,  5, 3, 'Right Hand', 'Right Arm Fast Medium'),
+('Sam Curran',         26, 'Allrounder',     1500000, 4, 3, 'Left Hand',  'Left Arm Fast Medium'),
+('Cameron Green',      25, 'Allrounder',     1600000, 3, 3, 'Right Hand', 'Right Arm Fast Medium'),
+('Tim David',          28, 'Batsman',        1200000, 6, 1, 'Right Hand', NULL),
+('Matthew Wade',       36, 'Wicket Keeper',  900000,  3, 4, 'Left Hand',  NULL),
+('Heinrich Klaasen',   32, 'Wicket Keeper',  1200000, 6, 4, 'Right Hand', NULL),
+('Nicholas Pooran',    28, 'Wicket Keeper',  1400000, 5, 4, 'Left Hand',  NULL);
+
+-- Player Stats
+INSERT INTO Player_Stats (player_id, matches, runs_scored, wickets, centuries, avg_score, strike_rate, economy_rate) VALUES
+(1,  250, 8500, 5,   75, 52.30, 139.5, 0.00),
+(2,  237, 9800, 10,  45, 48.70, 131.2, 0.00),
+(3,  95,  3500, 12,  9,  43.10, 128.4, 0.00),
+(4,  175, 6400, 15,  22, 41.60, 140.8, 0.00),
+(5,  90,  3100, 8,   3,  42.50, 126.3, 0.00),
+(6,  130, 4500, 10,  12, 40.20, 130.5, 0.00),
+(7,  140, 4200, 6,   7,  35.80, 138.7, 0.00),
+(8,  120, 4800, 8,   5,  45.20, 136.9, 0.00),
+(9,  75,  2900, 4,   6,  46.10, 142.3, 0.00),
+(10, 110, 3800, 5,   5,  36.40, 139.1, 0.00),
+(11, 105, 3500, 3,   4,  38.20, 149.5, 0.00),
+(12, 80,  2500, 2,   1,  31.20, 133.6, 0.00),
+(13, 60,  1900, 5,   1,  35.70, 128.9, 0.00),
+(14, 72,  2400, 4,   2,  40.50, 148.3, 0.00),
+(15, 120, 300,  145, 0,  12.50, 82.1,  6.30),
+(16, 75,  250,  120, 0,  14.20, 78.5,  6.80),
+(17, 85,  400,  130, 0,  13.80, 92.0,  7.10),
+(18, 140, 500,  180, 0,  11.20, 85.3,  6.60),
+(19, 88,  280,  115, 0,  13.50, 76.9,  7.30),
+(20, 130, 600,  165, 0,  14.90, 94.0,  6.90),
+(21, 95,  800,  130, 0,  20.50, 110.5, 6.40),
+(22, 130, 450,  150, 0,  12.80, 75.0,  7.50),
+(23, 200, 1800, 180, 0,  22.40, 96.3,  6.80),
+(24, 85,  600,  100, 0,  18.90, 105.2, 6.60),
+(25, 80,  350,  100, 0,  11.90, 80.5,  7.20),
+(26, 100, 700,  140, 0,  19.30, 88.7,  7.10),
+(27, 70,  200,  90,  0,  10.80, 72.3,  7.60),
+(28, 110, 600,  120, 0,  15.40, 85.1,  6.90),
+(29, 50,  180,  70,  0,  12.10, 80.0,  7.80),
+(30, 55,  250,  75,  0,  13.50, 83.2,  7.40),
+(31, 100, 2800, 120, 4,  35.60, 141.2, 7.20),
+(32, 85,  2600, 80,  2,  40.10, 148.3, 7.80),
+(33, 150, 4200, 200, 5,  38.40, 122.5, 6.40),
+(34, 110, 2200, 140, 1,  28.60, 134.7, 6.80),
+(35, 200, 5100, 220, 3,  36.90, 132.4, 7.10),
+(36, 90,  1800, 100, 2,  30.20, 140.5, 7.50),
+(37, 80,  1900, 80,  1,  33.70, 146.8, 7.60),
+(38, 65,  1200, 60,  0,  28.90, 138.2, 0.00),
+(39, 75,  1600, 70,  0,  29.40, 141.9, 0.00),
+(40, 70,  1400, 75,  1,  31.80, 144.3, 7.40),
+(41, 50,  900,  55,  0,  27.50, 145.8, 0.00),
+(42, 90,  2100, 110, 2,  32.60, 143.2, 7.10),
+(43, 60,  1100, 60,  0,  26.90, 139.7, 0.00),
+(44, 85,  2300, 75,  3,  38.10, 152.3, 0.00),
+(45, 70,  1700, 80,  1,  34.20, 148.7, 7.80),
+(46, 55,  1500, 5,   2,  35.60, 155.2, 0.00),
+(47, 95,  1800, 15,  0,  28.40, 130.5, 0.00),
+(48, 65,  1700, 8,   1,  35.90, 143.1, 0.00),
+(49, 60,  1600, 5,   1,  34.80, 150.2, 0.00);
+-- (50, 55,  1400, 6,   0,  33.10, 151.4, 0.00);
+SELECT * FROM Players;
+-- Auctions
+INSERT INTO Auction (season, auction_date, venue, total_players_auctioned) VALUES
+(2023, '2022-12-16', 'Kochi',     72),
+(2024, '2023-12-19', 'Dubai',     90),
+(2025, '2024-11-24', 'Jeddah',   110);
+
+-- ============================================================
+-- SECTION 4: STORED PROCEDURES
+-- ============================================================
+
+DELIMITER $$
+
+-- 1. Place a bid (validates amount is higher than current highest)
+CREATE PROCEDURE Place_Bid(
+    IN p_player INT,
+    IN p_team   INT,
+    IN p_auction INT,
+    IN p_amount DECIMAL(12,2)
+)
+BEGIN
+    DECLARE max_bid     DECIMAL(12,2);
+    DECLARE base_p      DECIMAL(12,2);
+    DECLARE rem_budget  DECIMAL(12,2);
+    DECLARE already_sold INT;
+
+    -- Check if already sold
+    SELECT COUNT(*) INTO already_sold FROM Player_Sale WHERE player_id = p_player;
+    IF already_sold > 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Player already sold. Cannot bid.';
+    END IF;
+
+    -- Get base price and current highest bid
+    SELECT base_price INTO base_p FROM Players WHERE player_id = p_player;
+    SELECT COALESCE(MAX(bid_amount), 0) INTO max_bid FROM Bids
+    WHERE player_id = p_player AND auction_id = p_auction;
+
+    IF p_amount <= max_bid THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Bid must be higher than current highest bid.';
+    END IF;
+    IF p_amount < base_p THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Bid cannot be below base price.';
+    END IF;
+
+    -- Check team budget
+    SELECT remaining_budget INTO rem_budget FROM Teams WHERE team_id = p_team;
+    IF rem_budget < p_amount THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Team does not have enough budget for this bid.';
+    END IF;
+
+    INSERT INTO Bids(player_id, team_id, auction_id, bid_amount)
+    VALUES (p_player, p_team, p_auction, p_amount);
+
+    INSERT INTO Auction_Log(action, player_id, team_id, amount)
+    VALUES ('BID_PLACED', p_player, p_team, p_amount);
+END$$
+
+-- 2. Auto-sell to highest bidder
+DELIMITER $$
+
+CREATE PROCEDURE Auto_Sell_Highest_Bidder(
+    IN p_player  INT,
+    IN p_auction INT,
+    IN p_season  YEAR
+)
+BEGIN
+    DECLARE win_team   INT;
+    DECLARE win_amount DECIMAL(12,2);
+    DECLARE already_sold INT;
+
+    -- check already sold
+    SELECT COUNT(*) INTO already_sold
+    FROM Player_Sale
+    WHERE player_id = p_player;
+
+    IF already_sold > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Player already sold.';
+    END IF;
+
+    -- find highest bidder
+    SELECT team_id, bid_amount
+    INTO win_team, win_amount
+    FROM Bids
+    WHERE player_id = p_player AND auction_id = p_auction
+    ORDER BY bid_amount DESC
+    LIMIT 1;
+
+    IF win_team IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'No bids found for this player.';
+    END IF;
+
+    START TRANSACTION;
+
+    -- mark sold
+    UPDATE Players
+    SET status = 'sold'
+    WHERE player_id = p_player;
+
+    -- insert sale
+    INSERT INTO Player_Sale(player_id, team_id, auction_id, final_price)
+    VALUES (p_player, win_team, p_auction, win_amount);
+
+    -- update budget
+    UPDATE Teams
+    SET remaining_budget = remaining_budget - win_amount
+    WHERE team_id = win_team;
+
+    -- squad update
+    INSERT IGNORE INTO Team_Squad(team_id, player_id, season)
+    VALUES (win_team, p_player, p_season);
+
+    COMMIT;
+END$$
+
+DELIMITER ;
+
+-- 3. Sell Player manually
+DELIMITER $$
+
+CREATE PROCEDURE Sell_Player(
+    IN p_player  INT,
+    IN p_team    INT,
+    IN p_auction INT,
+    IN p_price   DECIMAL(12,2),
+    IN p_season  YEAR
+)
+BEGIN
+    DECLARE rem_budget  DECIMAL(12,2);
+    DECLARE already_sold INT;
+
+    -- check already sold
+    SELECT COUNT(*) INTO already_sold
+    FROM Player_Sale
+    WHERE player_id = p_player;
+
+    IF already_sold > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Player is already sold.';
+    END IF;
+
+    -- get budget
+    SELECT remaining_budget INTO rem_budget
+    FROM Teams
+    WHERE team_id = p_team;
+
+    IF rem_budget < p_price THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Team budget insufficient.';
+    END IF;
+
+    START TRANSACTION;
+
+    UPDATE Players
+    SET status = 'sold'
+    WHERE player_id = p_player;
+
+    INSERT INTO Player_Sale(player_id, team_id, auction_id, final_price)
+    VALUES (p_player, p_team, p_auction, p_price);
+
+    UPDATE Teams
+    SET remaining_budget = remaining_budget - p_price
+    WHERE team_id = p_team;
+
+    INSERT IGNORE INTO Team_Squad(team_id, player_id, season)
+    VALUES (p_team, p_player, p_season);
+
+    INSERT INTO Auction_Log(action, player_id, team_id, amount)
+    VALUES ('MANUAL_SELL', p_player, p_team, p_price);
+
+    COMMIT;
+END$$
+
+DELIMITER ;
+
+-- 4. Re-auction unsold player (reset and allow bidding again)
+DELIMITER $$
+
+CREATE PROCEDURE Reauction_Player(
+    IN p_player INT
+)
+BEGIN
+    DECLARE is_sold INT;
+
+    -- check if already sold
+    SELECT COUNT(*) INTO is_sold
+    FROM Player_Sale
+    WHERE player_id = p_player;
+
+    IF is_sold > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Cannot re-auction a sold player.';
+    END IF;
+
+    -- remove previous bids
+    DELETE FROM Bids
+    WHERE player_id = p_player;
+
+    -- reset player status
+    UPDATE Players
+    SET status = 'unsold'
+    WHERE player_id = p_player;
+
+    -- log action
+    INSERT INTO Auction_Log(action, player_id, team_id, amount)
+    VALUES ('REAUCTION', p_player, NULL, NULL);
+
+END$$
+
+DELIMITER ;
+
+-- 5. Transfer player between teams
+DELIMITER $$
+
+CREATE PROCEDURE Transfer_Player(
+    IN p_player    INT,
+    IN p_from_team INT,
+    IN p_to_team   INT,
+    IN p_price     DECIMAL(12,2),
+    IN p_season    YEAR
+)
+BEGIN
+    DECLARE to_budget DECIMAL(12,2);
+    DECLARE already_sold INT;
+
+    -- safety rollback if anything fails
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Transfer failed, transaction rolled back.';
+    END;
+
+    -- check if player exists in sale table
+    SELECT COUNT(*) INTO already_sold
+    FROM Player_Sale
+    WHERE player_id = p_player;
+
+    IF already_sold = 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Player not found in sold records.';
+    END IF;
+
+    -- check destination budget
+    SELECT remaining_budget INTO to_budget
+    FROM Teams
+    WHERE team_id = p_to_team;
+
+    IF to_budget IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Invalid destination team.';
+    END IF;
+
+    IF to_budget < p_price THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Destination team has insufficient budget.';
+    END IF;
+
+    START TRANSACTION;
+
+    -- update sale record (transfer ownership)
+    UPDATE Player_Sale
+    SET team_id = p_to_team,
+        final_price = p_price
+    WHERE player_id = p_player;
+
+    -- refund old team
+    UPDATE Teams
+    SET remaining_budget = remaining_budget + p_price
+    WHERE team_id = p_from_team;
+
+    -- deduct new team
+    UPDATE Teams
+    SET remaining_budget = remaining_budget - p_price
+    WHERE team_id = p_to_team;
+
+    -- update squad
+    UPDATE Team_Squad
+    SET team_id = p_to_team
+    WHERE player_id = p_player AND season = p_season;
+
+    -- log transfer
+    INSERT INTO Auction_Log(action, player_id, team_id, amount)
+    VALUES ('TRANSFER', p_player, p_to_team, p_price);
+
+    COMMIT;
+END$$
+
+DELIMITER ;
+
+-- ============================================================
+-- SECTION 5: FUNCTIONS
+-- ============================================================
+
+DELIMITER $$
+
+-- Get total money spent by a team
+CREATE FUNCTION Get_Team_Spending(p_team_id INT)
+RETURNS DECIMAL(15,2)
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE total DECIMAL(15,2);
+    SELECT SUM(final_price) INTO total
+    FROM Player_Sale WHERE team_id = p_team_id;
+    RETURN COALESCE(total, 0);
+END$$
+
+-- Get highest bid for a player
+DELIMITER $$
+
+CREATE FUNCTION Get_Player_Highest_Bid(p_player_id INT)
+RETURNS DECIMAL(12,2)
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE highest DECIMAL(12,2);
+
+    SELECT MAX(bid_amount)
+    INTO highest
+    FROM Bids
+    WHERE player_id = p_player_id;
+
+    RETURN COALESCE(highest, 0);
+END$$
+
+DELIMITER ;
+
+-- Count how many players a team has bought
+DELIMITER $$
+
+CREATE FUNCTION Get_Team_Player_Count(p_team_id INT)
+RETURNS INT
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE cnt INT;
+
+    SELECT COUNT(*)
+    INTO cnt
+    FROM Player_Sale
+    WHERE team_id = p_team_id;
+
+    RETURN cnt;
+END$$
+
+DELIMITER ;
+
+-- Check if player is affordable by a team
+DELIMItER $$
+
+CREATE FUNCTION Is_Player_Affordable(p_team_id INT, p_price DECIMAL(12,2))
+RETURNS VARCHAR(5)
+DETERMINISTIC
+READS SQL DATA
+BEGIN
+    DECLARE rem DECIMAL(15,2);
+    SELECT remaining_budget INTO rem FROM Teams WHERE team_id = p_team_id;
+    IF rem >= p_price THEN RETURN 'YES';
+    ELSE RETURN 'NO';
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- ============================================================
+-- SECTION 6: TRIGGERS
+-- ============================================================
+
+DELIMITER $$
+
+-- Prevent budget going negative
+CREATE TRIGGER prevent_negative_budget
+BEFORE UPDATE ON Teams
+FOR EACH ROW
+BEGIN
+    IF NEW.remaining_budget < 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Team budget cannot go below zero.';
+    END IF;
+END$$
+
+-- Prevent duplicate player sales
+CREATE TRIGGER prevent_duplicate_sale
+BEFORE INSERT ON Player_Sale
+FOR EACH ROW
+BEGIN
+    DECLARE cnt INT;
+    SELECT COUNT(*) INTO cnt FROM Player_Sale WHERE player_id = NEW.player_id;
+    IF cnt > 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Player has already been sold in this auction.';
+    END IF;
+END$$
+
+-- Auto-update player status to sold after sale record inserted
+CREATE TRIGGER auto_update_player_sold
+AFTER INSERT ON Player_Sale
+FOR EACH ROW
+BEGIN
+    UPDATE Players SET status = 'sold' WHERE player_id = NEW.player_id;
+END$$
+
+-- Log every bid automatically
+CREATE TRIGGER log_bid_placed
+AFTER INSERT ON Bids
+FOR EACH ROW
+BEGIN
+    INSERT INTO Auction_Log(action, player_id, team_id, amount)
+    VALUES ('BID_LOGGED', NEW.player_id, NEW.team_id, NEW.bid_amount);
+END$$
+
+-- Prevent bid below base price
+CREATE TRIGGER prevent_low_bid
+BEFORE INSERT ON Bids
+FOR EACH ROW
+BEGIN
+    DECLARE bp DECIMAL(12,2);
+    SELECT base_price INTO bp FROM Players WHERE player_id = NEW.player_id;
+    IF NEW.bid_amount < bp THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Bid amount is below the base price of the player.';
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- ============================================================
+-- SECTION 7: VIEWS
+-- ============================================================
+
+-- All sold players with team info
+CREATE VIEW Sold_Players_View AS
+SELECT
+    p.player_id, p.name AS player_name, pc.category_name,
+    p.role, c.country_name,
+    t.team_name, ps.final_price,
+    a.season
+FROM Player_Sale ps
+JOIN Players p         ON ps.player_id  = p.player_id
+JOIN Teams t           ON ps.team_id    = t.team_id
+JOIN Auction a         ON ps.auction_id = a.auction_id
+JOIN Player_Category pc ON p.category_id = pc.category_id
+JOIN Countries c       ON p.country_id  = c.country_id;
+
+-- Team spending overview
+CREATE VIEW Team_Spending_View AS
+SELECT
+    t.team_name, t.city,
+    t.total_budget,
+    (t.total_budget - t.remaining_budget) AS total_spent,
+    t.remaining_budget,
+    COUNT(ps.sale_id) AS players_bought
+FROM Teams t
+LEFT JOIN Player_Sale ps ON t.team_id = ps.team_id
+GROUP BY t.team_id, t.team_name, t.city, t.total_budget, t.remaining_budget;
+
+-- Highest bids per player
+CREATE VIEW Highest_Bids_View AS
+SELECT
+    p.name AS player_name,
+    p.role,
+    MAX(b.bid_amount) AS highest_bid,
+    COUNT(b.bid_id) AS total_bids
+FROM Bids b
+JOIN Players p ON b.player_id = p.player_id
+GROUP BY p.player_id, p.name, p.role;
+
+-- Unsold players view
+CREATE VIEW Unsold_Players_View AS
+SELECT p.name, p.role, p.base_price, pc.category_name, c.country_name
+FROM Players p
+JOIN Player_Category pc ON p.category_id = pc.category_id
+JOIN Countries c        ON p.country_id  = c.country_id
+WHERE p.status = 'unsold';
+
+-- Auction summary per season
+CREATE VIEW Auction_Summary_View AS
+SELECT
+    a.season,
+    COUNT(ps.sale_id)     AS total_sold,
+    SUM(ps.final_price)   AS total_money_spent,
+    MAX(ps.final_price)   AS highest_sale,
+    AVG(ps.final_price)   AS avg_sale_price
+FROM Auction a
+LEFT JOIN Player_Sale ps ON a.auction_id = ps.auction_id
+GROUP BY a.season;
+
+-- Player ranking by highest bid
+CREATE VIEW Player_Bid_Ranking AS
+SELECT
+    RANK() OVER (ORDER BY highest_bid DESC) AS bid_rank,
+    player_name,
+    role,
+    highest_bid
+FROM (
+    SELECT
+        p.player_id,
+        p.name AS player_name,
+        p.role,
+        MAX(b.bid_amount) AS highest_bid
+    FROM Bids b
+    JOIN Players p ON b.player_id = p.player_id
+    GROUP BY p.player_id, p.name, p.role
+) AS ranked_data;
+-- ============================================================
+-- SECTION 8: DEMO EXECUTION — AUCTION 2023 (auction_id=1)
+-- ============================================================
+
+-- Bidding wars for IPL 2023 (auction_id = 1, season = 2023)
+
+-- Virat Kohli (player 1)
+CALL Place_Bid(1, 3, 1, 2000000);
+CALL Place_Bid(1, 2, 1, 4000000);
+CALL Place_Bid(1, 3, 1, 8000000);
+CALL Place_Bid(1, 1, 1,12000000);
+CALL Place_Bid(1, 3, 1,15000000);
+CALL Auto_Sell_Highest_Bidder(1, 1, 2023);
+
+-- Rohit Sharma (player 2)
+CALL Place_Bid(2, 1, 1, 1800000);
+CALL Place_Bid(2, 4, 1, 4000000);
+CALL Place_Bid(2, 1, 1, 9000000);
+CALL Auto_Sell_Highest_Bidder(2, 1, 2023);
+
+-- Jasprit Bumrah (player 15)
+CALL Place_Bid(15, 1, 1, 2000000);
+CALL Place_Bid(15, 5, 1, 5000000);
+CALL Place_Bid(15, 1, 1,10000000);
+CALL Place_Bid(15, 8, 1,14000000);
+CALL Auto_Sell_Highest_Bidder(15, 1, 2023);
+
+-- Ben Stokes (player 31)
+CALL Place_Bid(31, 6, 1, 2000000);
+CALL Place_Bid(31, 4, 1, 5000000);
+CALL Place_Bid(31, 6, 1,11000000);
+CALL Auto_Sell_Highest_Bidder(31, 1, 2023);
+
+-- Rashid Khan (player 21)
+CALL Place_Bid(21, 8, 1, 1800000);
+CALL Place_Bid(21, 9, 1, 4000000);
+CALL Place_Bid(21, 8, 1, 8000000);
+CALL Place_Bid(21,10, 1,12000000);
+CALL Auto_Sell_Highest_Bidder(21, 1, 2023);
+
+-- Hardik Pandya (player 32)
+CALL Place_Bid(32, 1, 1, 2000000);
+CALL Place_Bid(32, 6, 1, 6000000);
+CALL Place_Bid(32, 1, 1,12000000);
+CALL Auto_Sell_Highest_Bidder(32, 1, 2023);
+
+-- KL Rahul (player 8)
+CALL Place_Bid(8, 9, 1, 1800000);
+CALL Place_Bid(8, 5, 1, 5000000);
+CALL Place_Bid(8, 9, 1,10000000);
+CALL Auto_Sell_Highest_Bidder(8, 1, 2023);
+
+-- Kagiso Rabada (player 19)
+CALL Place_Bid(19, 7, 1, 1800000);
+CALL Place_Bid(19, 3, 1, 5000000);
+CALL Place_Bid(19, 7, 1, 9000000);
+CALL Auto_Sell_Highest_Bidder(19, 1, 2023);
+
+-- Pat Cummins (player 20)
+CALL Place_Bid(20, 4, 1, 2000000);
+CALL Place_Bid(20, 2, 1, 6000000);
+CALL Place_Bid(20, 4, 1,13000000);
+CALL Auto_Sell_Highest_Bidder(20, 1, 2023);
+
+-- Ravindra Jadeja (player 35)
+CALL Place_Bid(35, 2, 1, 1800000);
+CALL Place_Bid(35, 7, 1, 4000000);
+CALL Place_Bid(35, 2, 1, 8000000);
+CALL Auto_Sell_Highest_Bidder(35, 1, 2023);
+
+-- David Warner (player 4)
+CALL Place_Bid(4, 8, 1, 1600000);
+CALL Place_Bid(4, 2, 1, 4000000);
+CALL Place_Bid(4, 8, 1, 7000000);
+CALL Auto_Sell_Highest_Bidder(4, 1, 2023);
+
+-- Mitchell Starc (player 17)
+CALL Place_Bid(17, 4, 1, 2000000);
+CALL Place_Bid(17, 9, 1, 5000000);
+CALL Place_Bid(17, 4, 1,11000000);
+CALL Auto_Sell_Highest_Bidder(17, 1, 2023);
+
+-- Jos Buttler (player 11)
+CALL Place_Bid(11, 6, 1, 1500000);
+CALL Place_Bid(11, 3, 1, 4500000);
+CALL Place_Bid(11, 6, 1, 9000000);
+CALL Auto_Sell_Highest_Bidder(11, 1, 2023);
+
+-- Sam Curran (player 44)
+CALL Place_Bid(44, 7, 1, 1500000);
+CALL Place_Bid(44, 5, 1, 5000000);
+CALL Place_Bid(44,10, 1, 9500000);
+CALL Auto_Sell_Highest_Bidder(44, 1, 2023);
+
+-- Faf du Plessis (player 7)
+CALL Place_Bid(7, 3, 1, 1200000);
+CALL Place_Bid(7, 1, 1, 3500000);
+CALL Place_Bid(7, 3, 1, 6500000);
+CALL Auto_Sell_Highest_Bidder(7, 1, 2023);
+
+-- ============================================================
+-- SECTION 9: DEMO EXECUTION — AUCTION 2024 (auction_id=2)
+-- ============================================================
+
+-- Babar Azam (player 3) — stays unsold in 2023, auctioned 2024
+CALL Place_Bid(3, 5, 2, 1500000);
+CALL Place_Bid(3, 2, 2, 4000000);
+CALL Place_Bid(3, 5, 2, 7500000);
+CALL Auto_Sell_Highest_Bidder(3, 2, 2024);
+
+-- Shaheen Afridi (player 16)
+CALL Place_Bid(16, 10, 2, 2000000);
+CALL Place_Bid(16,  6, 2, 5000000);
+CALL Place_Bid(16, 10, 2, 9000000);
+CALL Auto_Sell_Highest_Bidder(16, 2, 2024);
+
+-- Cameron Green (player 45)
+CALL Place_Bid(45, 1, 2, 1600000);
+CALL Place_Bid(45, 4, 2, 5000000);
+CALL Place_Bid(45, 1, 2,12500000);
+CALL Auto_Sell_Highest_Bidder(45, 2, 2024);
+
+-- Rishabh Pant (player 14)
+CALL Place_Bid(14, 5, 2, 1600000);
+CALL Place_Bid(14, 7, 2, 4000000);
+CALL Place_Bid(14, 5, 2,11000000);
+CALL Auto_Sell_Highest_Bidder(14, 2, 2024);
+
+-- Liam Livingstone (player 37)
+CALL Place_Bid(37, 7, 2, 1400000);
+CALL Place_Bid(37, 8, 2, 4000000);
+CALL Place_Bid(37, 7, 2, 8000000);
+CALL Auto_Sell_Highest_Bidder(37, 2, 2024);
+
+-- Nicholas Pooran (player 50)
+CALL Place_Bid(49, 9, 2, 1400000);
+CALL Place_Bid(49, 3, 2, 4000000);
+CALL Place_Bid(49, 9, 2, 7000000);
+CALL Auto_Sell_Highest_Bidder(49, 2, 2024);
+
+-- Mitchell Marsh (player 36)
+CALL Place_Bid(36, 10, 2, 1500000);
+CALL Place_Bid(36,  2, 2, 4000000);
+CALL Place_Bid(36, 10, 2, 7500000);
+CALL Auto_Sell_Highest_Bidder(36, 2, 2024);
+
+-- Jason Holder (player 40)
+CALL Place_Bid(40, 6, 2, 1300000);
+CALL Place_Bid(40, 4, 2, 3500000);
+CALL Place_Bid(40, 6, 2, 6500000);
+CALL Auto_Sell_Highest_Bidder(40, 2, 2024);
+
+-- Heinrich Klaasen (player 49)
+CALL Place_Bid(48, 8, 2, 1200000);
+CALL Place_Bid(48, 5, 2, 3000000);
+CALL Place_Bid(48, 8, 2, 5500000);
+CALL Auto_Sell_Highest_Bidder(48, 2, 2024);
+
+-- Wanindu Hasaranga (player 24)
+CALL Place_Bid(24, 3, 2, 1400000);
+CALL Place_Bid(24, 9, 2, 3500000);
+CALL Place_Bid(24, 3, 2, 6000000);
+CALL Auto_Sell_Highest_Bidder(24, 2, 2024);
+
+-- ============================================================
+-- SECTION 10: DEMO EXECUTION — AUCTION 2025 (auction_id=3)
+-- ============================================================
+
+-- Shubman Gill (player 9)
+CALL Place_Bid(9,  10, 3, 1400000);
+CALL Place_Bid(9,   2, 3, 3000000);
+CALL Place_Bid(9,  10, 3, 6000000);
+CALL Place_Bid(9,   1, 3, 8000000);
+CALL Auto_Sell_Highest_Bidder(9, 3, 2025);
+
+-- Axar Patel (player 34)
+CALL Place_Bid(34, 5, 3, 1200000);
+CALL Place_Bid(34, 1, 3, 3000000);
+CALL Place_Bid(34, 5, 3, 6000000);
+CALL Auto_Sell_Highest_Bidder(34, 3, 2025);
+
+-- Moeen Ali (player 39)
+CALL Place_Bid(39, 2, 3, 1200000);
+CALL Place_Bid(39, 6, 3, 3500000);
+CALL Place_Bid(39, 2, 3, 5500000);
+CALL Auto_Sell_Highest_Bidder(39, 3, 2025);
+
+-- Tim David (player 46)
+CALL Place_Bid(46, 1, 3, 1200000);
+CALL Place_Bid(46, 4, 3, 3500000);
+CALL Place_Bid(46, 1, 3, 7000000);
+CALL Auto_Sell_Highest_Bidder(46, 3, 2025);
+
+-- Ishan Kishan (player 12)
+CALL Place_Bid(12, 1, 3, 1200000);
+CALL Place_Bid(12, 7, 3, 3500000);
+CALL Place_Bid(12, 1, 3, 5000000);
+CALL Auto_Sell_Highest_Bidder(12, 3, 2025);
+
+-- Trent Boult (player 18) — re-auction demo
+CALL Place_Bid(18, 3, 3, 1600000);
+CALL Place_Bid(18, 7, 3, 4000000);
+CALL Place_Bid(18, 3, 3, 8000000);
+CALL Auto_Sell_Highest_Bidder(18, 3, 2025);
+
+-- Kane Williamson (player 5)
+CALL Place_Bid(5, 8, 3, 1500000);
+CALL Place_Bid(5, 4, 3, 3000000);
+CALL Place_Bid(5, 8, 3, 5500000);
+CALL Auto_Sell_Highest_Bidder(5, 3, 2025);
+
+-- Shakib Al Hasan (player 33)
+CALL Place_Bid(33, 10, 3, 1500000);
+CALL Place_Bid(33,  6, 3, 3500000);
+CALL Place_Bid(33, 10, 3, 5500000);
+CALL Auto_Sell_Highest_Bidder(33, 3, 2025);
+
+-- Quinton de Kock (player 10)
+CALL Place_Bid(10, 9, 3, 1500000);
+CALL Place_Bid(10, 2, 3, 4000000);
+CALL Place_Bid(10, 9, 3, 6000000);
+CALL Auto_Sell_Highest_Bidder(10, 3, 2025);
+
+-- Bhuvneshwar Kumar (player 28)
+CALL Place_Bid(28, 8, 3, 1200000);
+CALL Place_Bid(28, 3, 3, 2500000);
+CALL Place_Bid(28, 8, 3, 4000000);
+CALL Auto_Sell_Highest_Bidder(28, 3, 2025);
+
+-- ============================================================
+-- SECTION 11: OUTPUT QUERIES
+-- ============================================================
+
+-- 1. All sold players with team and price
+SELECT * FROM Sold_Players_View ORDER BY final_price DESC;
+
+-- 2. Team spending summary
+SELECT * FROM Team_Spending_View ORDER BY total_spent DESC;
+
+-- 3. Top 5 most expensive players overall
+SELECT player_name, team_name, final_price, season
+FROM Sold_Players_View
+ORDER BY final_price DESC
+LIMIT 5;
+
+-- 4. Players with NO bids (completely ignored)
+SELECT p.name, p.role, p.base_price, c.country_name
+FROM Players p
+JOIN Countries c ON p.country_id = c.country_id
+WHERE p.player_id NOT IN (SELECT DISTINCT player_id FROM Bids);
+
+-- 5. Auction summary per season
+SELECT * FROM Auction_Summary_View;
+
+-- 6. Player bid ranking
+SELECT * FROM Player_Bid_Ranking LIMIT 10;
+
+-- 7. Team with highest total spending
+SELECT team_name, total_spent
+FROM Team_Spending_View
+ORDER BY total_spent DESC
+LIMIT 1;
+
+-- 8. Highest bid competition (players with most bids)
+SELECT player_name, total_bids, highest_bid
+FROM Highest_Bids_View
+ORDER BY total_bids DESC
+LIMIT 10;
+
+-- 9. Unsold players
+SELECT * FROM Unsold_Players_View;
+
+-- 10. Second highest bid overall
+SELECT MAX(bid_amount) AS second_highest_bid
+FROM Bids
+WHERE bid_amount < (SELECT MAX(bid_amount) FROM Bids);
+
+-- 11. Function usage demos
+SELECT Get_Team_Spending(1)          AS MI_Total_Spent;
+SELECT Get_Player_Highest_Bid(1)     AS Kohli_Highest_Bid;
+SELECT Get_Team_Player_Count(1)      AS MI_Player_Count;
+SELECT Is_Player_Affordable(1, 5000000) AS Can_MI_Afford_5M;
+
+-- 12. Country-wise sold players
+SELECT c.country_name, COUNT(ps.sale_id) AS players_sold
+FROM Player_Sale ps
+JOIN Players p  ON ps.player_id = p.player_id
+JOIN Countries c ON p.country_id = c.country_id
+GROUP BY c.country_name
+ORDER BY players_sold DESC;
+
+-- 13. Average sale price per category
+SELECT pc.category_name,
+       AVG(ps.final_price) AS avg_price,
+       MAX(ps.final_price) AS max_price,
+       COUNT(*)            AS total_sold
+FROM Player_Sale ps
+JOIN Players p         ON ps.player_id = p.player_id
+JOIN Player_Category pc ON p.category_id = pc.category_id
+GROUP BY pc.category_name;
+
+-- 14. Audit log
+SELECT * FROM Auction_Log ORDER BY log_time DESC LIMIT 20;

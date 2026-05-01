@@ -1,0 +1,2 @@
+-- This file is deprecated. Use auction_db_complete.sql instead.
+-- That file has no IPL branding, no demo data, and is fully generic.
