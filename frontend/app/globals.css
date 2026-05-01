@@ -371,12 +371,13 @@ tbody tr:last-child td {
 
 .login-input {
   width: 100%;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.78rem 1rem;
   color: white;
   outline: none;
+  font-size: 0.875rem;
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease,
@@ -384,13 +385,13 @@ tbody tr:last-child td {
 }
 
 .login-input::placeholder {
-  color: rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 0.22);
 }
 
 .login-input:focus {
-  border-color: rgba(245, 158, 11, 0.5);
-  background: rgba(255, 255, 255, 0.06);
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(255, 255, 255, 0.065);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.08);
 }
 
 .login-button {
@@ -398,9 +399,9 @@ tbody tr:last-child td {
   align-items: center;
   justify-content: center;
   gap: 0.55rem;
-  border-radius: 12px;
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  border-radius: 10px;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  background: linear-gradient(180deg, #fbbf24, #f59e0b);
   color: #030303;
   padding: 0.9rem 1.2rem;
   font-size: 0.925rem;

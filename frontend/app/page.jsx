@@ -2,23 +2,10 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import {
-  Cricket,
-  Eye,
-  EyeSlash,
-  LockKey,
-  ShieldCheck,
-  User,
-} from "@phosphor-icons/react";
+import { Eye, EyeSlash, LockKey, User } from "@phosphor-icons/react";
 import { useAuth } from "./lib/auth";
 import { apiFetch } from "./lib/api";
 import { Spinner } from "./components/UI";
-
-const FEATURES = [
-  { label: "Live auction floor", dot: "bg-emerald-400" },
-  { label: "Real-time bidding", dot: "bg-amber-400" },
-  { label: "Role-based access", dot: "bg-purple-400" },
-];
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -27,10 +14,10 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     if (!form.username || !form.password) {
-      setError("Enter both username and password.");
+      setError("Please fill in both fields.");
       return;
     }
     setLoading(true);
@@ -42,188 +29,123 @@ export default function LoginPage() {
       });
       login(data.token, data.user);
     } catch (err) {
-      setError(err.message || "Unable to sign in.");
+      setError(err.message || "Invalid credentials.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#06060a] text-white">
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_50%,rgba(245,158,11,0.07),transparent_55%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_20%,rgba(99,102,241,0.06),transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_60%_80%,rgba(245,158,11,0.04),transparent_45%)]" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#070709]">
+      {/* Background beams */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-1/2 top-0 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse,rgba(245,158,11,0.09)_0%,transparent_65%)] blur-3xl" />
+        <div className="absolute left-1/2 top-[-80px] h-[200px] w-[1px] -translate-x-1/2 bg-gradient-to-b from-transparent via-amber-400/40 to-transparent" />
       </div>
 
-      <div className="login-grid absolute inset-0 opacity-60" />
+      {/* Dot grid */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.18]"
+        style={{
+          backgroundImage: "radial-gradient(rgba(255,255,255,0.35) 1px, transparent 1px)",
+          backgroundSize: "28px 28px",
+          maskImage: "radial-gradient(ellipse 70% 70% at 50% 50%, black 40%, transparent 100%)",
+        }}
+      />
 
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/30 to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
+      {/* Top line */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/25 to-transparent" />
 
-      <div className="relative mx-auto flex min-h-screen max-w-7xl items-center px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid w-full items-center gap-10 lg:grid-cols-[1.2fr_0.8fr]">
+      {/* Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 w-full max-w-[380px] px-4"
+      >
+        {/* Logo mark */}
+        <div className="mb-8 flex flex-col items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-400/20 bg-amber-400/10">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" fill="rgba(245,158,11,0.15)" stroke="#f59e0b" strokeWidth="1.5" strokeLinejoin="round" />
+              <path d="M9 12l2 2 4-4" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <div className="text-center">
+            <p className="text-[0.95rem] font-bold tracking-[-0.02em] text-white">Auction OS</p>
+            <p className="text-[0.72rem] text-white/35">Cricket Auction Platform</p>
+          </div>
+        </div>
 
-          <section className="max-w-2xl">
-            <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-2.5 rounded-full border border-amber-400/20 bg-amber-400/8 px-4 py-2 text-[0.68rem] font-bold uppercase tracking-[0.25em] text-amber-400"
-            >
-              <Cricket size={14} weight="fill" />
-              Cricket Auction Management
-            </motion.div>
+        {/* Form card */}
+        <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] shadow-[0_0_80px_rgba(0,0,0,0.5)]">
+          <div className="p-6">
+            <h1 className="mb-1 text-[1.1rem] font-bold tracking-[-0.025em] text-white">
+              Sign in
+            </h1>
+            <p className="mb-6 text-[0.78rem] text-white/38">
+              Enter your credentials to access the platform.
+            </p>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.07 }}
-              className="mt-7 font-[var(--font-display)] text-5xl font-bold leading-[0.96] tracking-[-0.05em] text-white sm:text-6xl lg:text-[4.5rem]"
-            >
-              The auction
-              <br />
-              <span className="text-amber-400">command room.</span>
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.13 }}
-              className="mt-6 max-w-lg text-base leading-8 text-white/48 sm:text-lg"
-            >
-              Unified control for super admins, auction managers, and franchise
-              operators. Real-time bids, live timers, squad tracking.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="mt-9 flex flex-wrap gap-3"
-            >
-              {FEATURES.map((item) => (
-                <span
-                  key={item.label}
-                  className="flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-sm text-white/55"
-                >
-                  <span className={`h-1.5 w-1.5 rounded-full ${item.dot}`} />
-                  {item.label}
-                </span>
-              ))}
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.28 }}
-              className="mt-12 hidden lg:flex items-end gap-4"
-            >
-              {[
-                { num: "16", label: "Teams" },
-                { num: "200+", label: "Players" },
-                { num: "Live", label: "Real-time sync" },
-              ].map((item) => (
-                <div key={item.label} className="pr-4 border-r border-white/[0.08] last:border-r-0">
-                  <p className="font-[var(--font-display)] text-2xl font-bold text-amber-400 tracking-[-0.04em]">
-                    {item.num}
-                  </p>
-                  <p className="mt-0.5 text-[0.72rem] text-white/38 uppercase tracking-[0.16em]">
-                    {item.label}
-                  </p>
-                </div>
-              ))}
-            </motion.div>
-          </section>
-
-          <section className="w-full">
-            <motion.div
-              initial={{ opacity: 0, y: 22, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
-              className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-2xl border border-white/[0.09] bg-[linear-gradient(160deg,rgba(255,255,255,0.07),rgba(255,255,255,0.025))] p-7 shadow-[0_32px_80px_rgba(0,0,0,0.55)] backdrop-blur-2xl"
-            >
-              <div className="absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/40 to-transparent" />
-              <div className="absolute -right-12 -top-12 h-28 w-28 rounded-full bg-amber-400/6 blur-3xl pointer-events-none" />
-
-              <div className="mb-7 flex items-center justify-between">
-                <div>
-                  <p className="font-[var(--font-display)] text-[1.05rem] font-bold tracking-[-0.03em] text-white">
-                    Sign in
-                  </p>
-                  <p className="mt-0.5 text-xs text-white/38">Access your dashboard</p>
-                </div>
-                <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-2.5 text-amber-400">
-                  <ShieldCheck size={18} weight="fill" />
-                </div>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="relative">
+                <User size={14} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25" />
+                <input
+                  className="login-input pl-9 text-sm"
+                  placeholder="Username"
+                  autoComplete="username"
+                  value={form.username}
+                  onChange={(e) => setForm((c) => ({ ...c, username: e.target.value }))}
+                />
               </div>
 
-              <form className="space-y-4" onSubmit={handleSubmit}>
-                <label className="block">
-                  <span className="mb-2 block text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white/38">
-                    Username or Email
-                  </span>
-                  <div className="relative">
-                    <User
-                      size={16}
-                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-white/28"
-                    />
-                    <input
-                      className="login-input pl-10"
-                      placeholder="Enter your username"
-                      value={form.username}
-                      onChange={(e) => setForm((c) => ({ ...c, username: e.target.value }))}
-                    />
-                  </div>
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white/38">
-                    Password
-                  </span>
-                  <div className="relative">
-                    <LockKey
-                      size={16}
-                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-white/28"
-                    />
-                    <input
-                      className="login-input pl-10 pr-11"
-                      type={showPwd ? "text" : "password"}
-                      placeholder="Enter your password"
-                      value={form.password}
-                      onChange={(e) => setForm((c) => ({ ...c, password: e.target.value }))}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-white/30 transition hover:bg-white/[0.06] hover:text-white/60"
-                      onClick={() => setShowPwd((v) => !v)}
-                    >
-                      {showPwd ? <EyeSlash size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </label>
-
-                {error ? (
-                  <motion.div
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400"
-                  >
-                    {error}
-                  </motion.div>
-                ) : null}
-
-                <button className="login-button w-full mt-2" type="submit" disabled={loading}>
-                  {loading ? <Spinner size={17} /> : "Enter Platform"}
+              <div className="relative">
+                <LockKey size={14} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25" />
+                <input
+                  className="login-input pl-9 pr-10 text-sm"
+                  type={showPwd ? "text" : "password"}
+                  placeholder="Password"
+                  autoComplete="current-password"
+                  value={form.password}
+                  onChange={(e) => setForm((c) => ({ ...c, password: e.target.value }))}
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/25 transition hover:text-white/55"
+                  onClick={() => setShowPwd((v) => !v)}
+                >
+                  {showPwd ? <EyeSlash size={15} /> : <Eye size={15} />}
                 </button>
-              </form>
+              </div>
 
-              <p className="mt-5 text-center text-[0.7rem] text-white/25">
-                Authorized personnel only
-              </p>
-            </motion.div>
-          </section>
+              {error && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-[0.78rem] text-red-400"
+                >
+                  {error}
+                </motion.p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="login-button mt-1 w-full"
+              >
+                {loading ? <Spinner size={16} /> : "Continue"}
+              </button>
+            </form>
+          </div>
+
+          <div className="border-t border-white/[0.06] px-6 py-3">
+            <p className="text-center text-[0.7rem] text-white/20">
+              Restricted access · Authorized users only
+            </p>
+          </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
