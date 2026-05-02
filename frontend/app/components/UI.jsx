@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CaretDown,
@@ -12,6 +13,8 @@ import {
   DotsThree,
   List,
   GridFour,
+  CaretLeft,
+  CaretRight,
 } from "@phosphor-icons/react";
 import { cn } from "../lib/format";
 
@@ -228,7 +231,7 @@ export function SearchInput({ value, onChange, placeholder = "Search..." }) {
 
 
 
-import { useRef, useEffect } from "react";
+
 
 const SelectOption = ({ opt, value, onChange, setOpen }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -312,116 +315,248 @@ export function Select({ value, onChange, options, placeholder = "Select option"
     </div>
   );
 }
-import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 
-export function Pagination({ current, total, onPageChange }) {
+
+const PaginationRoot = ({ className, ...props }) => (
+  <nav
+    role="navigation"
+    aria-label="pagination"
+    className={cn("mx-auto flex w-full justify-end", className)}
+    {...props}
+  />
+)
+
+const PaginationContent = React.forwardRef(({ className, ...props }, ref) => (
+  <ul
+    ref={ref}
+    className={cn("flex flex-row items-center gap-1.5", className)}
+    {...props}
+  />
+))
+
+const PaginationItem = React.forwardRef(({ className, ...props }, ref) => (
+  <li ref={ref} className={cn("", className)} {...props} />
+))
+
+const PaginationLink = ({
+  className,
+  isActive,
+  size = "icon",
+  ...props
+}) => (
+  <button
+    type="button"
+    aria-current={isActive ? "page" : undefined}
+    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+    className={cn(
+      "flex h-9 w-9 items-center justify-center rounded-md text-sm font-medium transition-all",
+      isActive
+        ? "bg-slate-900 text-white shadow-sm"
+        : "bg-transparent text-slate-600 hover:bg-slate-200/60 hover:text-slate-950",
+      className
+    )}
+    {...props}
+  />
+)
+
+const PaginationPrevious = ({
+  className,
+  ...props
+}) => (
+  <button
+    type="button"
+    aria-label="Go to previous page"
+    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+    className={cn(
+      "flex h-9 items-center gap-1.5 px-3 rounded-md text-sm font-medium bg-transparent text-slate-950 hover:bg-slate-200/60 transition-all disabled:opacity-30 disabled:cursor-not-allowed",
+      className
+    )}
+    {...props}
+  >
+    <CaretLeft size={18} />
+    <span>Previous</span>
+  </button>
+)
+
+const PaginationNext = ({
+  className,
+  ...props
+}) => (
+  <button
+    type="button"
+    aria-label="Go to next page"
+    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+    className={cn(
+      "flex h-9 items-center gap-1.5 px-3 rounded-md text-sm font-medium bg-transparent text-slate-950 hover:bg-slate-200/60 transition-all disabled:opacity-30 disabled:cursor-not-allowed",
+      className
+    )}
+    {...props}
+  >
+    <span>Next</span>
+    <CaretRight size={18} />
+  </button>
+)
+
+const PaginationEllipsis = ({
+  className,
+  ...props
+}) => (
+  <span
+    aria-hidden
+    className={cn("flex h-8 w-8 items-center justify-center text-slate-400", className)}
+    {...props}
+  >
+    <DotsThree size={18} weight="bold" />
+    <span className="sr-only">More pages</span>
+  </span>
+)
+
+
+
+export function Pagination({ current, total, onChange }) {
   if (total <= 1) return null;
 
+  const pages = [];
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= current - 1 && i <= current + 1)) {
+      pages.push(i);
+    } else if (i === current - 2 || i === current + 2) {
+      pages.push("ellipsis");
+    }
+  }
+
+  // Filter unique ellipsis
+  const uniquePages = pages.filter((v, i, a) => v !== "ellipsis" || a[i - 1] !== "ellipsis");
+
   return (
-    <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4 bg-white rounded-b-xl">
-      <div className="text-xs font-semibold text-slate-500">
-        Page {current} of {total}
-      </div>
-      <div className="flex gap-2">
-        <button
-          disabled={current === 1}
-          onClick={() => onPageChange(current - 1)}
-          className="btn-outline !h-8 !px-2 disabled:opacity-30"
-        >
-          <CaretLeft size={16} />
-        </button>
-        <div className="flex gap-1">
-          {Array.from({ length: total }).map((_, i) => {
-            const page = i + 1;
-            // Only show first, last, and pages near current
-            if (page === 1 || page === total || (page >= current - 1 && page <= current + 1)) {
-              return (
-                <button
-                  key={page}
-                  onClick={() => onPageChange(page)}
-                  className={cn(
-                    "btn !h-8 !w-8 !p-0 font-bold text-xs transition-all",
-                    current === page ? "btn-primary" : "btn-ghost"
-                  )}
-                >
-                  {page}
-                </button>
-              );
-            }
-            if (page === current - 2 || page === current + 2) {
-              return <span key={page} className="px-1 text-slate-300">...</span>;
-            }
-            return null;
-          })}
-        </div>
-        <button
-          disabled={current === total}
-          onClick={() => onPageChange(current + 1)}
-          className="btn-outline !h-8 !px-2 disabled:opacity-30"
-        >
-          <CaretRight size={16} />
-        </button>
-      </div>
-    </div>
+    <PaginationRoot className="py-4">
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious 
+            disabled={current === 1}
+            onClick={() => onChange(current - 1)} 
+          />
+        </PaginationItem>
+
+        {uniquePages.map((p, idx) => (
+          <PaginationItem key={idx}>
+            {p === "ellipsis" ? (
+              <PaginationEllipsis />
+            ) : (
+              <PaginationLink
+                isActive={p === current}
+                onClick={() => onChange(p)}
+              >
+                {p}
+              </PaginationLink>
+            )}
+          </PaginationItem>
+        ))}
+
+        <PaginationItem>
+          <PaginationNext 
+            disabled={current === total}
+            onClick={() => onChange(current + 1)} 
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </PaginationRoot>
   );
 }
 
 export function TableDropdown({ options }) {
   const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState(null);
   const ref = useRef(null);
 
+  const updateCoords = () => {
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setCoords({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.right + window.scrollX - 144,
+      });
+    }
+  };
+
   useEffect(() => {
+    if (open) {
+      updateCoords();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
     function handleClickOutside(event) {
       if (ref.current && !ref.current.contains(event.target)) {
         setOpen(false);
       }
     }
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    window.addEventListener("resize", updateCoords);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("resize", updateCoords);
+    };
+  }, [open]);
 
   return (
     <div className="relative inline-block text-left" ref={ref}>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen(!open);
+        }}
         className="flex items-center justify-center p-1.5 rounded-md hover:bg-slate-100 text-slate-500 transition-colors focus:outline-none"
       >
         <DotsThree size={22} weight="bold" />
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -5 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -5 }}
-            transition={{ duration: 0.1, ease: "easeOut" }}
-            className="absolute right-0 z-[60] mt-1 w-36 origin-top-right rounded-lg border border-slate-200 bg-white p-1 shadow-lg shadow-slate-200/50"
-          >
-            {options.map((opt, i) => {
-              const Icon = opt.icon;
-              return (
-                <button
-                  key={i}
-                  onClick={() => {
-                    opt.onClick();
-                    setOpen(false);
-                  }}
-                  className={cn(
-                    "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[13px] font-semibold transition-colors duration-75",
-                    opt.danger
-                      ? "text-red-600 hover:bg-red-50"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                  )}
-                >
-                  {Icon && <Icon size={16} />}
-                  {opt.label}
-                </button>
-              );
-            })}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {open && coords && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -5 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -5 }}
+              transition={{ duration: 0.1 }}
+              className="absolute z-[9999] w-36 origin-top-right rounded-lg border border-slate-200 bg-white p-1 shadow-lg shadow-slate-200/50"
+              style={{ 
+                top: coords.top,
+                left: coords.left
+              }}
+            >
+              {options.map((opt, i) => {
+                const Icon = opt.icon;
+                return (
+                  <button
+                    key={i}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      opt.onClick();
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[13px] font-semibold transition-colors duration-75",
+                      opt.danger
+                        ? "text-red-600 hover:bg-red-50"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    )}
+                  >
+                    {Icon && <Icon size={16} />}
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }

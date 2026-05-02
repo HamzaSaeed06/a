@@ -17,6 +17,10 @@ import {
   Trash,
   UserCircleGear,
   Video,
+  CheckCircle,
+  Prohibit,
+  Clock,
+  CaretRight
 } from "@phosphor-icons/react";
 import DashboardLayout from "../../components/DashboardLayout";
 import PlayerStatsOverlay from "../../components/PlayerStatsOverlay";
@@ -36,7 +40,7 @@ import {
   useToast,
 } from "../../components/UI";
 import { apiFetch } from "../../lib/api";
-import { formatCurrency } from "../../lib/format";
+import { formatCurrency, cn } from "../../lib/format";
 import { countriesData } from "../../lib/countries";
 
 const BATTING = ["Right-hand bat", "Left-hand bat"];
@@ -80,7 +84,7 @@ export default function PlayersPage() {
   const [viewMode, setViewMode] = useState("table");
   const { toasts, toast, removeToast } = useToast();
   
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE = 7;
 
   const fetchAll = () => {
     apiFetch("/admin/players").then(setPlayers).catch(() => {});
@@ -192,137 +196,117 @@ export default function PlayersPage() {
       <div className="mt-6">
         <SectionCard padded={false}>
           {filtered.length ? (
-            <>
+            <div className="overflow-auto h-[calc(100vh-200px)] relative border-t border-slate-100 no-scrollbar">
               {viewMode === "table" ? (
-                <div className="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>S.No</th>
-                        <th>Player</th>
-                        <th>Role</th>
-                        <th>Country</th>
-                        <th>Category</th>
-                        <th>Base Price</th>
-                        <th>Status</th>
-                        <th className="w-16">Options</th>
+                <table className="w-full border-collapse">
+                  <thead className="sticky top-0 z-10 bg-white border-b border-slate-200">
+                    <tr>
+                      <th>S.No</th>
+                      <th>Player</th>
+                      <th>Role</th>
+                      <th>Country</th>
+                      <th>Category</th>
+                      <th>Base Price</th>
+                      <th>Status</th>
+                      <th className="w-16">Options</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginated.map((player, index) => (
+                      <tr key={player.player_id} className="border-b border-slate-200 hover:bg-slate-50/50 transition-colors">
+                        <td>{(page - 1) * PAGE_SIZE + index + 1}</td>
+                        <td className="font-semibold text-slate-950">{player.name}</td>
+                        <td>{player.role || "-"}</td>
+                        <td className="text-slate-500">
+                          <div className="flex items-center gap-2">
+                            {player.country_code && (
+                              <img
+                                src={`https://flagcdn.com/w40/${player.country_code.toLowerCase()}.png`}
+                                alt=""
+                                className="country-flag"
+                              />
+                            )}
+                            {player.country_name || "-"}
+                          </div>
+                        </td>
+                        <td className="text-slate-500 uppercase">{player.category_name || "-"}</td>
+                        <td className="font-bold text-slate-900">{formatCurrency(player.base_price)}</td>
+                        <td>
+                          <span className={`badge ${player.status === "sold" ? "badge-success" : player.status === "unsold" ? "badge-neutral" : "badge-accent"}`}>
+                            {player.status}
+                          </span>
+                        </td>
+                        <td>
+                          <TableDropdown
+                            options={[
+                              { label: "Edit", icon: PencilSimple, onClick: () => openEdit(player) },
+                              { label: "Delete", icon: Trash, danger: true, onClick: () => setConfirm(player.player_id) }
+                            ]}
+                          />
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {paginated.map((player, index) => (
-                        <tr key={player.player_id}>
-                          <td>{(page - 1) * PAGE_SIZE + index + 1}</td>
-                          <td className="font-semibold text-slate-950">{player.name}</td>
-                          <td>{player.role || "-"}</td>
-                          <td>
-                            <div className="flex items-center gap-2">
-                              {player.country_code && (
-                                <img
-                                  src={
-                                    countriesData.find(c => c.code.toLowerCase() === player.country_code.toLowerCase())?.flagUrl 
-                                    || `https://flagcdn.com/w40/${player.country_code.toLowerCase()}.png`
-                                  }
-                                  alt=""
-                                  className="country-flag"
-                                  style={{ objectFit: 'contain' }}
-                                />
-                              )}
-                              <span className="text-slate-600">{player.country_name || "-"}</span>
-                              {player.country_code && <span className="text-[0.65rem] font-bold text-slate-400 bg-slate-100 px-1 rounded uppercase tracking-wider">{player.country_code}</span>}
-                            </div>
-                          </td>
-                          <td className="text-slate-500 font-medium">{player.category_name || "-"}</td>
-                          <td className="font-bold text-slate-900">{formatCurrency(player.base_price)}</td>
-                          <td>
-                            <span className={`badge ${player.status === "sold" ? "badge-success" : player.status === "withdrawn" ? "badge-danger" : "badge-neutral"}`}>
-                              {player.status || "unsold"}
-                            </span>
-                          </td>
-                          <td>
-                            <TableDropdown
-                              options={[
-                                { label: "View Profile", icon: Eye, onClick: () => setPreview(player) },
-                                { label: "Edit", icon: PencilSimple, onClick: () => openEdit(player) },
-                                { label: "Delete", icon: Trash, danger: true, onClick: () => setConfirm(player.player_id) }
-                              ]}
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               ) : (
                 <div className="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-8 bg-slate-50/50">
                   {paginated.map((player) => (
-                    <div key={player.player_id} className="surface flex flex-col border border-slate-200 hover:border-slate-900 transition-all duration-300 overflow-hidden relative group bg-white shadow-sm hover:shadow-md rounded-xl">
-                      <div className="absolute top-4 right-4 z-10">
-                        <TableDropdown
-                          options={[
-                            { label: "View Profile", icon: Eye, onClick: () => setPreview(player) },
-                            { label: "Edit", icon: PencilSimple, onClick: () => openEdit(player) },
-                            { label: "Delete", icon: Trash, danger: true, onClick: () => setConfirm(player.player_id) }
-                          ]}
-                        />
-                      </div>
-                      <div className="p-6 flex-1 flex flex-col">
-                        <div className="flex items-center gap-4 mb-5">
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-50 border border-slate-100">
-                            <Person size={24} className="text-slate-400" />
-                          </div>
-                          <div className="min-w-0">
-                            <h3 className="text-base font-bold text-slate-950 truncate leading-tight">{player.name}</h3>
-                            <p className="text-xs font-semibold text-slate-400 mt-0.5">{player.role || "Player"}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-auto space-y-3.5 pt-4 border-t border-slate-50">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] text-slate-400 font-bold tracking-tight">BASE PRICE</span>
-                            <span className="text-sm font-black text-slate-950">{formatCurrency(player.base_price)}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] text-slate-400 font-bold tracking-tight">CATEGORY</span>
-                            <span className="text-[11px] font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{player.category_name || "-"}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] text-slate-400 font-bold tracking-tight">COUNTRY</span>
-                            <div className="flex items-center gap-1.5">
-                              {player.country_code && (
-                                <img
-                                  src={
-                                    countriesData.find(c => c.code.toLowerCase() === player.country_code.toLowerCase())?.flagUrl 
-                                    || `https://flagcdn.com/w20/${player.country_code.toLowerCase()}.png`
-                                  }
-                                  alt=""
-                                  className="w-4 h-3 object-contain rounded-sm"
-                                />
-                              )}
-                              <span className="text-xs font-bold text-slate-700">{player.country_name || "-"}</span>
+                    <div key={player.player_id} className="surface group hover:border-slate-900 transition-all duration-300">
+                       <div className="p-4">
+                        <div className="flex items-start justify-between mb-5">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 shrink-0 rounded-full bg-slate-950 text-white flex items-center justify-center overflow-hidden">
+                               {player.image ? (
+                                 <img src={player.image} alt="" className="w-full h-full object-cover" />
+                               ) : (
+                                 <span className="text-sm font-bold">{player.name?.substring(0, 2).toUpperCase()}</span>
+                               )}
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="text-sm font-semibold text-slate-950 truncate leading-none mb-1">{player.name}</h3>
+                              <div className="flex items-center gap-1.5">
+                                 {player.country_code && (
+                                   <img src={`https://flagcdn.com/w20/${player.country_code.toLowerCase()}.png`} alt="" className="h-2.5 w-4 object-contain rounded-[1px]" />
+                                 )}
+                                 <p className="text-[10px] font-medium text-slate-400 capitalize">{player.role || "Player"}</p>
+                              </div>
                             </div>
                           </div>
-                          <div className="pt-2">
-                             <span className={cn(
-                               "inline-flex w-full justify-center rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-widest border",
-                               player.status === "sold" ? "bg-emerald-50 text-emerald-700 border-emerald-100" : 
-                               player.status === "withdrawn" ? "bg-red-50 text-red-700 border-red-100" : 
-                               "bg-slate-50 text-slate-600 border-slate-100"
-                             )}>
-                                {player.status || "unsold"}
-                             </span>
-                          </div>
+                          <TableDropdown
+                            options={[
+                              { label: "Edit", icon: PencilSimple, onClick: () => openEdit(player) },
+                              { label: "Delete", icon: Trash, danger: true, onClick: () => setConfirm(player.player_id) }
+                            ]}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 py-4 border-y border-slate-50">
+                           <div className="flex flex-col gap-1">
+                              <span className="text-[10px] font-medium text-slate-400 capitalize tracking-tight">Base Price</span>
+                              <span className="text-sm font-semibold text-slate-900">{formatCurrency(player.base_price)}</span>
+                           </div>
+                           <div className="flex flex-col gap-1">
+                              <span className="text-[10px] font-medium text-slate-400 capitalize tracking-tight">Category</span>
+                              <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">{player.category_name || "N/A"}</span>
+                           </div>
+                        </div>
+
+                        <div className="mt-4 flex items-center justify-between">
+                           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-50">
+                              <div className={cn("h-1.5 w-1.5 rounded-full", 
+                                player.status === "sold" ? "bg-emerald-500" : 
+                                player.status === "withdrawn" ? "bg-red-500" : 
+                                "bg-slate-300"
+                              )} />
+                              <span className="text-[10px] font-semibold text-slate-600 capitalize">{player.status || "unsold"}</span>
+                           </div>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-              <Pagination 
-                current={page} 
-                total={totalPages} 
-                onPageChange={setPage} 
-              />
-            </>
+            </div>
           ) : (
             <EmptyState
               icon={IdentificationBadge}
@@ -331,6 +315,9 @@ export default function PlayersPage() {
             />
           )}
         </SectionCard>
+        <div className="mt-2">
+          <Pagination current={page} total={totalPages} onChange={setPage} />
+        </div>
       </div>
 
       <Modal open={modal} onClose={() => setModal(false)} title={editPlayer ? "Edit Player" : "Create Player"}>

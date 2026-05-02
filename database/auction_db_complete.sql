@@ -47,7 +47,7 @@ CREATE TABLE Countries (
     country_id INT AUTO_INCREMENT PRIMARY KEY,
     country_name VARCHAR(60) UNIQUE NOT NULL,
     region VARCHAR(50),
-    country_code VARCHAR(5) NULL
+    country_code VARCHAR(20) NULL
 );
 
 CREATE TABLE Players (

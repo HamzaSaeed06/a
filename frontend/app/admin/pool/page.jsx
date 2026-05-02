@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ListChecks, Plus, Trash, Person } from "@phosphor-icons/react";
+import { ListChecks, Plus, Trash, Person, GlobeHemisphereWest, IdentificationBadge, Money, CheckCircle, Prohibit, Clock } from "@phosphor-icons/react";
 import DashboardLayout from "../../components/DashboardLayout";
 import {
   ConfirmModal,
@@ -19,7 +19,7 @@ import {
 } from "../../components/UI";
 import { UserCircle } from "@phosphor-icons/react";
 import { apiFetch } from "../../lib/api";
-import { formatCurrency } from "../../lib/format";
+import { formatCurrency, cn } from "../../lib/format";
 
 export default function PoolPage() {
   const [pool, setPool] = useState([]);
@@ -28,8 +28,11 @@ export default function PoolPage() {
   const [form, setForm] = useState({ player_id: "" });
   const [confirm, setConfirm] = useState(null);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState("table");
   const { toasts, toast, removeToast } = useToast();
+  
+  const PAGE_SIZE = 7;
 
   const fetchPool = () => {
     apiFetch("/admin/auction-pool").then(setPool).catch(() => {});
@@ -53,6 +56,13 @@ export default function PoolPage() {
       .toLowerCase()
       .includes(search.toLowerCase()),
   );
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   const addToPool = async () => {
     try {
@@ -93,7 +103,7 @@ export default function PoolPage() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <SearchInput
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => { setSearch(event.target.value); setPage(1); }}
           placeholder="Search queued players..."
         />
         <div className="flex items-center gap-3">
@@ -114,11 +124,10 @@ export default function PoolPage() {
       <div className="mt-6">
         <SectionCard padded={false}>
           {filtered.length ? (
-            <>
+            <div className="overflow-auto h-[calc(100vh-200px)] relative border-t border-slate-100 no-scrollbar">
               {viewMode === "table" ? (
-                <div className="table-wrap">
-                  <table>
-                    <thead>
+                  <table className="w-full border-collapse">
+                    <thead className="sticky top-0 z-10 bg-white border-b border-slate-200">
                       <tr>
                         <th>Lot</th>
                         <th>Player</th>
@@ -129,8 +138,8 @@ export default function PoolPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filtered.map((item) => (
-                        <tr key={item.pool_id}>
+                      {paginated.map((item) => (
+                        <tr key={item.player_id} className="border-b border-slate-200 hover:bg-slate-50/50 transition-colors">
                           <td className="font-bold text-slate-400">#{item.lot_number}</td>
                           <td className="font-semibold text-slate-950">
                             <div className="flex items-center gap-2">
@@ -147,7 +156,8 @@ export default function PoolPage() {
                           <td className="text-slate-500">{item.role || "-"}</td>
                           <td className="font-bold text-slate-900">{formatCurrency(item.base_price)}</td>
                           <td>
-                            <span className={`badge ${item.status === "active" ? "badge-accent" : item.status === "processed" ? "badge-neutral" : "badge-success"}`}>
+                            <span className={`badge gap-1.5 ${item.status === "active" ? "badge-accent" : item.status === "processed" ? "badge-neutral" : "badge-success"}`}>
+                              {item.status === "active" ? <Clock size={14} weight="bold" /> : item.status === "processed" ? <Prohibit size={14} weight="bold" /> : <CheckCircle size={14} weight="bold" />}
                               {item.status}
                             </span>
                           </td>
@@ -161,67 +171,70 @@ export default function PoolPage() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
-                </div>
+                </table>
               ) : (
-                <div className="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-8 bg-slate-50/50">
-                  {filtered.map((item) => (
-                    <div key={item.pool_id} className="surface flex flex-col border border-slate-200 hover:border-slate-900 transition-all duration-300 overflow-hidden relative group bg-white shadow-sm hover:shadow-md rounded-xl">
-                      <div className="absolute top-4 right-4 z-10">
-                        <TableDropdown
-                          options={[
-                            { label: "Remove", icon: Trash, danger: true, onClick: () => setConfirm(item.pool_id) }
-                          ]}
-                        />
-                      </div>
-                      <div className="absolute top-4 left-4 z-10">
-                         <span className="text-[10px] font-black text-slate-300 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">LOT #{item.lot_number}</span>
-                      </div>
-                      <div className="p-6 flex-1 flex flex-col mt-4">
-                        <div className="flex items-center gap-4 mb-5">
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-50 border border-slate-100">
-                            <Person size={24} className="text-slate-400" />
-                          </div>
-                          <div className="min-w-0">
-                            <h3 className="text-base font-bold text-slate-950 truncate leading-tight">{item.name}</h3>
-                            <p className="text-xs font-semibold text-slate-400 mt-0.5">{item.role || "Player"}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-auto space-y-3.5 pt-4 border-t border-slate-50">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] text-slate-400 font-bold tracking-tight">BASE PRICE</span>
-                            <span className="text-sm font-black text-slate-950">{formatCurrency(item.base_price)}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] text-slate-400 font-bold tracking-tight">COUNTRY</span>
-                            <div className="flex items-center gap-1.5">
-                              {item.country_code && (
-                                <img
-                                  src={`https://flagcdn.com/w20/${item.country_code.toLowerCase()}.png`}
-                                  alt=""
-                                  className="w-4 h-3 object-contain rounded-sm"
-                                />
-                              )}
+                <div className="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3 bg-slate-50/50">
+                    {paginated.map((item) => (
+                      <div key={item.pool_id} className="surface group hover:border-slate-900 transition-all duration-300">
+                        <div className="p-4">
+                          <div className="flex items-start justify-between mb-5">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 shrink-0 rounded-full bg-slate-950 text-white flex items-center justify-center overflow-hidden">
+                                 {item.image ? (
+                                   <img src={item.image} alt="" className="w-full h-full object-cover" />
+                                 ) : (
+                                   <span className="text-sm font-bold">{item.name?.substring(0, 2).toUpperCase()}</span>
+                                 )}
+                              </div>
+                              <div className="min-w-0">
+                                <h3 className="text-sm font-semibold text-slate-950 truncate leading-none mb-1">{item.name}</h3>
+                                <div className="flex items-center gap-1.5">
+                                   <div className="h-1 w-1 rounded-full bg-slate-300" />
+                                   <p className="text-[10px] font-medium text-slate-400 capitalize">{item.role || "Role"}</p>
+                                </div>
+                              </div>
                             </div>
+                            <span className="text-[10px] font-bold text-slate-300">#{item.lot_number}</span>
                           </div>
-                          <div className="pt-2">
-                             <span className={cn(
-                               "inline-flex w-full justify-center rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-widest border",
-                               item.status === "active" ? "bg-blue-50 text-blue-700 border-blue-100" : 
-                               item.status === "processed" ? "bg-slate-50 text-slate-600 border-slate-100" : 
-                               "bg-emerald-50 text-emerald-700 border-emerald-100"
+
+                          <div className="grid grid-cols-2 gap-4 py-4 border-y border-slate-50">
+                             <div className="flex flex-col gap-1">
+                                <span className="text-[10px] font-medium text-slate-400 capitalize tracking-tight">Base Price</span>
+                                <span className="text-sm font-semibold text-slate-900">{formatCurrency(item.base_price)}</span>
+                             </div>
+                             <div className="flex flex-col gap-1">
+                                <span className="text-[10px] font-medium text-slate-400 capitalize tracking-tight">Origin</span>
+                                <span className="text-[11px] font-semibold text-slate-600">{item.country_name || "N/A"}</span>
+                             </div>
+                          </div>
+
+                          <div className="mt-4 flex items-center justify-between">
+                             <div className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest", 
+                               item.status === "active" ? "bg-blue-50 text-blue-700" : 
+                               item.status === "processed" ? "bg-slate-50 text-slate-500" : 
+                               "bg-emerald-50 text-emerald-700"
                              )}>
-                                {item.status}
-                             </span>
+                                <div className={cn("h-1 w-1 rounded-full", 
+                                  item.status === "active" ? "bg-blue-500" : 
+                                  item.status === "processed" ? "bg-slate-400" : 
+                                  "bg-emerald-500"
+                                )} />
+                                <span className="capitalize">{item.status}</span>
+                             </div>
+                             
+                             <button 
+                               className="text-[10px] font-semibold text-slate-400 hover:text-red-600 transition-colors capitalize"
+                               onClick={() => setConfirm(item.pool_id)}
+                             >
+                               Remove
+                             </button>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               )}
-            </>
+            </div>
           ) : (
             <EmptyState
               icon={ListChecks}
@@ -230,6 +243,9 @@ export default function PoolPage() {
             />
           )}
         </SectionCard>
+        <div className="mt-2">
+          <Pagination current={page} total={totalPages} onChange={setPage} />
+        </div>
       </div>
 
       <Modal open={modal} onClose={() => setModal(false)} title="Add Player to Auction Pool" width={420}>

@@ -48,7 +48,7 @@ export default function UsersPage() {
   const [page, setPage] = useState(1);
   const { toasts, toast, removeToast } = useToast();
   
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE = 7;
 
   const fetchUsers = () => apiFetch("/super-admin/users").then(setUsers).catch(() => {});
 
@@ -156,41 +156,42 @@ export default function UsersPage() {
       <div className="mt-6">
         <SectionCard padded={false}>
           {filtered.length ? (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>S.No</th>
-                    <th>Username</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginated.map((user, index) => (
-                    <tr key={user.user_id}>
-                      <td>{(page - 1) * PAGE_SIZE + index + 1}</td>
-                      <td className="font-semibold text-slate-950">{user.username}</td>
-                      <td>{user.email}</td>
-                      <td>
-                        <span className={`badge ${user.role_name === "Super Admin" ? "badge-accent" : user.role_name === "Admin" ? "badge-neutral" : "badge-success"}`}>
-                          {user.role_name}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`badge ${user.is_active ? "badge-success" : "badge-danger"}`}>
-                          {user.is_active ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                      <td>{formatDate(user.created_at)}</td>
+            <>
+              <div className="overflow-auto h-[calc(100vh-200px)] relative border-t border-slate-100 no-scrollbar">
+                <table className="w-full border-collapse">
+                  <thead className="sticky top-0 z-10 bg-white border-b border-slate-200">
+                    <tr>
+                      <th>S.No</th>
+                      <th>Username</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th>Created</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              <Pagination current={page} total={totalPages} onPageChange={setPage} />
-            </div>
+                  </thead>
+                  <tbody>
+                    {paginated.map((user, index) => (
+                      <tr key={user.user_id} className="border-b border-slate-200 hover:bg-slate-50/50 transition-colors">
+                        <td>{(page - 1) * PAGE_SIZE + index + 1}</td>
+                        <td className="font-semibold text-slate-950">{user.username}</td>
+                        <td>{user.email}</td>
+                        <td>
+                          <span className={`badge ${user.role_name === "Super Admin" ? "badge-accent" : user.role_name === "Admin" ? "badge-neutral" : "badge-success"}`}>
+                            {user.role_name}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`badge ${user.is_active ? "badge-success" : "badge-danger"}`}>
+                            {user.is_active ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td>{formatDate(user.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           ) : (
             <EmptyState
               icon={UserList}
@@ -199,6 +200,9 @@ export default function UsersPage() {
             />
           )}
         </SectionCard>
+        <div className="mt-2">
+          <Pagination current={page} total={totalPages} onChange={setPage} />
+        </div>
       </div>
 
     </DashboardLayout>

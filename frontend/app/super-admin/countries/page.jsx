@@ -11,6 +11,7 @@ import {
   Modal,
   PageHeader,
   SearchInput,
+  Pagination,
   SectionCard,
   TableDropdown,
   Toast,
@@ -26,7 +27,10 @@ export default function CountriesPage() {
   const [suggestions, setSuggestions] = useState([]);
   const [editItem, setEditItem] = useState(null);
   const [confirm, setConfirm] = useState(null);
+  const [page, setPage] = useState(1);
   const { toasts, toast, removeToast } = useToast();
+  
+  const PAGE_SIZE = 7;
 
   const fetchItems = () => apiFetch("/super-admin/countries").then(setItems).catch(() => {});
 
@@ -41,6 +45,13 @@ export default function CountriesPage() {
       .toLowerCase()
       .includes(search.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   const openAdd = () => {
     setEditItem(null);
@@ -139,62 +150,64 @@ export default function CountriesPage() {
 
       <SectionCard padded={false}>
         {items.length ? (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>S.No</th>
-                  <th>Country</th>
-                  <th>ISO Code</th>
-                  <th>Dial Code</th>
-                  <th className="w-16">Options</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((item, index) => (
-                  <tr key={item.country_id}>
-                    <td>{index + 1}</td>
-                    <td className="font-semibold text-slate-950">
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex h-5 w-8 shrink-0 items-center justify-center overflow-hidden rounded bg-slate-50 border border-slate-200/60 shadow-sm">
-                          {item.country_code ? (
-                            <img
-                              src={
-                                countriesData.find(c => c.code.toLowerCase() === item.country_code.toLowerCase())?.flagUrl 
-                                || `https://flagcdn.com/${item.country_code.toLowerCase()}.svg`
-                              }
-                              alt=""
-                              className="h-full w-full object-contain"
-                              onError={(e) => { 
-                                e.target.style.display = 'none'; 
-                                e.target.nextSibling.style.display = 'block'; 
-                              }}
-                            />
-                          ) : null}
-                          <GlobeHemisphereWest size={12} className="text-slate-400 hidden" />
-                        </div>
-                        {item.country_name}
-                      </div>
-                    </td>
-                    <td>
-                      <span className="badge badge-neutral">{item.country_code || "—"}</span>
-                    </td>
-                    <td className="text-sm font-medium text-slate-500">
-                      {item.dial_code || "—"}
-                    </td>
-                    <td>
-                      <TableDropdown
-                        options={[
-                          { label: "Edit", icon: PencilSimple, onClick: () => openEdit(item) },
-                          { label: "Delete", icon: Trash, danger: true, onClick: () => setConfirm(item.country_id) }
-                        ]}
-                      />
-                    </td>
+          <>
+            <div className="overflow-auto h-[calc(100vh-200px)] relative border-t border-slate-100 no-scrollbar">
+              <table className="w-full border-collapse">
+                <thead className="sticky top-0 z-10 bg-white border-b border-slate-200">
+                  <tr>
+                    <th>S.No</th>
+                    <th>Country</th>
+                    <th>ISO Code</th>
+                    <th>Dial Code</th>
+                    <th className="w-16">Options</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {paginated.map((item, index) => (
+                    <tr key={item.country_id} className="border-b border-slate-200 hover:bg-slate-50/50 transition-colors">
+                      <td>{(page - 1) * PAGE_SIZE + index + 1}</td>
+                      <td className="font-semibold text-slate-950">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-5 w-8 shrink-0 items-center justify-center overflow-hidden rounded bg-slate-50 border border-slate-200/60 shadow-sm">
+                            {item.country_code ? (
+                              <img
+                                src={
+                                  countriesData.find(c => c.code.toLowerCase() === item.country_code.toLowerCase())?.flagUrl 
+                                  || `https://flagcdn.com/${item.country_code.toLowerCase()}.svg`
+                                }
+                                alt=""
+                                className="h-full w-full object-contain"
+                                onError={(e) => { 
+                                  e.target.style.display = 'none'; 
+                                  e.target.nextSibling.style.display = 'block'; 
+                                }}
+                              />
+                            ) : null}
+                            <GlobeHemisphereWest size={12} className="text-slate-400 hidden" />
+                          </div>
+                          {item.country_name}
+                        </div>
+                      </td>
+                      <td>
+                        <span className="badge badge-neutral">{item.country_code || "—"}</span>
+                      </td>
+                      <td className="text-sm font-medium text-slate-500">
+                        {item.dial_code || "—"}
+                      </td>
+                      <td>
+                        <TableDropdown
+                          options={[
+                            { label: "Edit", icon: PencilSimple, onClick: () => openEdit(item) },
+                            { label: "Delete", icon: Trash, danger: true, onClick: () => setConfirm(item.country_id) }
+                          ]}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : (
           <EmptyState
             icon={GlobeHemisphereWest}
@@ -203,6 +216,9 @@ export default function CountriesPage() {
           />
         )}
       </SectionCard>
+      <div className="mt-2">
+        <Pagination current={page} total={totalPages} onChange={setPage} />
+      </div>
 
       <Modal open={modal} onClose={() => setModal(false)} title={editItem ? "Edit Country" : "Add Country"} width={420}>
         <div className="grid gap-4">

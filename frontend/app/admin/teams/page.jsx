@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Buildings, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
+import { Buildings, PencilSimple, Plus, Trash, MapPin, UsersThree, Wallet, CheckCircle, CaretRight } from "@phosphor-icons/react";
 import DashboardLayout from "../../components/DashboardLayout";
 import {
   ConfirmModal,
@@ -18,7 +18,7 @@ import {
   useToast,
 } from "../../components/UI";
 import { apiFetch } from "../../lib/api";
-import { formatCurrency } from "../../lib/format";
+import { formatCurrency, cn } from "../../lib/format";
 
 const emptyForm = {
   team_name: "",
@@ -42,7 +42,7 @@ export default function TeamsPage() {
   const [viewMode, setViewMode] = useState("table");
   const { toasts, toast, removeToast } = useToast();
   
-  const PAGE_SIZE = 8;
+  const PAGE_SIZE = 7;
 
   const fetchTeams = () => apiFetch("/admin/teams").then(setTeams).catch(() => {});
 
@@ -141,11 +141,10 @@ export default function TeamsPage() {
       <div className="mt-6">
         <SectionCard padded={false}>
           {filtered.length ? (
-            <>
+            <div className="overflow-auto h-[calc(100vh-200px)] relative border-t border-slate-100 no-scrollbar">
               {viewMode === "table" ? (
-                <div className="table-wrap">
-                  <table>
-                    <thead>
+                  <table className="w-full border-collapse">
+                    <thead className="sticky top-0 z-10 bg-white border-b border-slate-200">
                       <tr>
                         <th>S.No</th>
                         <th>Team</th>
@@ -158,7 +157,7 @@ export default function TeamsPage() {
                     </thead>
                     <tbody>
                       {paginated.map((team, index) => (
-                        <tr key={team.team_id}>
+                        <tr key={team.team_id} className="border-b border-slate-200 hover:bg-slate-50/50 transition-colors">
                           <td>{(page - 1) * PAGE_SIZE + index + 1}</td>
                           <td>
                             <div className="font-semibold text-slate-950">{team.team_name}</div>
@@ -168,10 +167,14 @@ export default function TeamsPage() {
                             <div className="text-sm text-slate-600">{team.username || "—"}</div>
                             <div className="text-[11px] text-slate-400">{team.email || "—"}</div>
                           </td>
-                          <td className="text-slate-600">{team.owner_name || "-"}</td>
-                          <td className="text-slate-600">{formatCurrency(team.total_budget)}</td>
-                          <td className="font-bold text-emerald-600">
-                            {formatCurrency(team.remaining_budget)}
+                          <td>
+                            <div className="text-sm font-semibold text-slate-800">{team.owner_name || "—"}</div>
+                          </td>
+                          <td>
+                            <div className="text-sm font-bold text-slate-900">{formatCurrency(team.total_budget)}</div>
+                          </td>
+                          <td>
+                            <div className="text-sm font-bold text-emerald-600">{formatCurrency(team.remaining_budget)}</div>
                           </td>
                           <td>
                             <TableDropdown
@@ -185,56 +188,47 @@ export default function TeamsPage() {
                       ))}
                     </tbody>
                   </table>
-                </div>
-              ) : (
-                <div className="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3 xl:gap-8 bg-slate-50/50">
+                ) : (
+                  <div className="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3 bg-slate-50/50">
                   {paginated.map((team) => (
-                    <div key={team.team_id} className="surface flex flex-col border border-slate-200 hover:border-slate-900 transition-all duration-300 overflow-hidden relative group bg-white shadow-sm hover:shadow-md rounded-xl">
-                      <div className="absolute top-4 right-4 z-10">
-                        <TableDropdown
-                          options={[
-                            { label: "Edit", icon: PencilSimple, onClick: () => openEdit(team) },
-                            { label: "Delete", icon: Trash, danger: true, onClick: () => setConfirm(team.team_id) }
-                          ]}
-                        />
-                      </div>
-                      <div className="p-6 flex-1 flex flex-col">
-                        <div className="flex items-center gap-4 mb-6">
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg">
-                            <Buildings size={24} />
-                          </div>
-                          <div className="min-w-0">
-                            <h3 className="text-base font-bold text-slate-950 truncate leading-tight">{team.team_name}</h3>
-                            <p className="text-xs font-semibold text-slate-400 mt-0.5">{team.city || "Global Franchise"}</p>
-                          </div>
-                        </div>
-
-                        <div className="space-y-4">
-                          <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
-                            <div className="text-[11px] text-slate-400 font-bold tracking-tight mb-1">OWNER</div>
-                            <div className="text-sm font-black text-slate-900">{team.owner_name || "Unassigned"}</div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
-                              <div className="text-[11px] text-slate-400 font-bold tracking-tight mb-1">BUDGET</div>
-                              <div className="text-sm font-black text-slate-950">{formatCurrency(team.total_budget)}</div>
+                    <div key={team.team_id} className="surface group hover:border-slate-900 transition-all duration-300">
+                      <div className="p-4">
+                        <div className="flex items-start justify-between mb-5">
+                          <div className="flex items-center gap-3">
+                            <div className="h-11 w-11 shrink-0 rounded-full bg-slate-950 text-white flex items-center justify-center overflow-hidden border-2 border-white shadow-sm ring-1 ring-slate-100">
+                               {team.logo_url ? (
+                                 <img src={team.logo_url} alt="" className="w-full h-full object-cover" />
+                               ) : (
+                                 <span className="text-[15px] font-black tracking-tighter">{team.team_name?.substring(0, 2).toUpperCase()}</span>
+                               )}
                             </div>
-                            <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
-                              <div className="text-[11px] text-emerald-600/60 font-bold tracking-tight mb-1">BALANCE</div>
-                              <div className="text-sm font-black text-emerald-700">{formatCurrency(team.remaining_budget)}</div>
+                            <div className="min-w-0">
+                              <h3 className="text-sm font-bold text-slate-950 truncate leading-none mb-1">{team.team_name}</h3>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{team.city || "No City"}</p>
                             </div>
                           </div>
+                          <TableDropdown
+                            options={[
+                              { label: "Edit", icon: PencilSimple, onClick: () => openEdit(team) },
+                              { label: "Delete", icon: Trash, danger: true, onClick: () => setConfirm(team.team_id) }
+                            ]}
+                          />
                         </div>
 
-                        <div className="mt-auto pt-5 flex items-center justify-between border-t border-slate-50 mt-5">
-                           <div className="flex flex-col">
-                              <span className="text-[11px] text-slate-400 font-bold tracking-tight">ACCOUNT</span>
-                              <span className="text-xs font-bold text-slate-700 mt-0.5">{team.username || "—"}</span>
+                        <div className="grid grid-cols-2 gap-4 py-4 border-y border-slate-50">
+                           <div className="flex flex-col gap-1">
+                              <span className="text-[10px] font-medium text-slate-400 capitalize tracking-tight">Total Budget</span>
+                              <span className="text-sm font-semibold text-slate-900">{formatCurrency(team.total_budget)}</span>
                            </div>
-                           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100">
-                              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500"></div>
-                              <span className="text-[10px] font-black text-emerald-700 uppercase tracking-tighter">Active</span>
+                           <div className="flex flex-col gap-1">
+                              <span className="text-[10px] font-medium text-emerald-600/70 capitalize tracking-tight">Remaining</span>
+                              <span className="text-sm font-semibold text-emerald-700">{formatCurrency(team.remaining_budget)}</span>
+                           </div>
+                        </div>
+
+                        <div className="mt-4 flex items-center justify-between">
+                           <div className="flex items-center gap-2 px-2 py-0.5 rounded-md bg-slate-950 text-white text-[9px] font-semibold capitalize tracking-widest">
+                              Active
                            </div>
                         </div>
                       </div>
@@ -242,8 +236,7 @@ export default function TeamsPage() {
                   ))}
                 </div>
               )}
-              <Pagination current={page} total={totalPages} onPageChange={setPage} />
-            </>
+            </div>
           ) : (
             <EmptyState
               icon={Buildings}
@@ -252,6 +245,9 @@ export default function TeamsPage() {
             />
           )}
         </SectionCard>
+        <div className="mt-2">
+          <Pagination current={page} total={totalPages} onChange={setPage} />
+        </div>
       </div>
 
       <Modal open={modal} onClose={() => setModal(false)} title={editTeam ? "Edit Team" : "Create Team"}>
