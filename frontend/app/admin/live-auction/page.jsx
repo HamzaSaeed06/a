@@ -13,7 +13,8 @@ import {
 } from "@phosphor-icons/react";
 import DashboardLayout from "../../components/DashboardLayout";
 import PlayerStatsOverlay from "../../components/PlayerStatsOverlay";
-import { PageHeader, SectionCard, Toast, useToast } from "../../components/UI";
+import { PageHeader, SectionCard } from "../../components/UI";
+import { toast } from "react-hot-toast";
 import { apiFetch } from "../../lib/api";
 import { formatCurrency, formatTime } from "../../lib/format";
 import { getSocket } from "../../lib/socket";
@@ -22,30 +23,30 @@ const TIMER_MAX = 15;
 
 function TimerRing({ timeLeft, isActive }) {
   const size = 160;
-  const stroke = 5;
+  const stroke = 6;
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
   const progress = Math.max(0, timeLeft / TIMER_MAX);
   const dash = circ * progress;
 
   const color =
-    timeLeft > 10 ? "#22c55e" : timeLeft > 5 ? "#f59e0b" : "#ef4444";
+    timeLeft > 10 ? "#10b981" : timeLeft > 5 ? "#f59e0b" : "#ef4444";
   const glowClass =
-    timeLeft > 10 ? "timer-ring-green" : timeLeft > 5 ? "timer-ring-amber" : "timer-ring-red";
+    timeLeft > 10 ? "text-emerald-500" : timeLeft > 5 ? "text-amber-500" : "text-red-500";
   const textColor =
-    timeLeft > 10 ? "text-emerald-400" : timeLeft > 5 ? "text-amber-400" : "text-red-400";
+    timeLeft > 10 ? "text-emerald-600" : timeLeft > 5 ? "text-amber-600" : "text-red-600";
   const ringPulse =
-    timeLeft <= 5 && isActive ? "animate-pulse-ring" : timeLeft <= 10 && isActive ? "animate-pulse-ring-amber" : "";
+    timeLeft <= 5 && isActive ? "animate-pulse" : "";
 
   return (
     <div className={`relative flex items-center justify-center ${ringPulse}`}>
-      <svg width={size} height={size} className="-rotate-90">
+      <svg width={size} height={size} className="-rotate-90 drop-shadow-sm">
         <circle
           cx={size / 2}
           cy={size / 2}
           r={r}
           fill="none"
-          stroke="rgba(255,255,255,0.06)"
+          stroke="#f1f5f9"
           strokeWidth={stroke}
         />
         <motion.circle
@@ -53,11 +54,11 @@ function TimerRing({ timeLeft, isActive }) {
           cy={size / 2}
           r={r}
           fill="none"
+          stroke={color}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={circ}
           strokeDashoffset={circ - dash}
-          className={glowClass}
           animate={{ strokeDashoffset: circ - dash }}
           transition={{ duration: 0.4 }}
         />
@@ -65,13 +66,13 @@ function TimerRing({ timeLeft, isActive }) {
       <div className="absolute flex flex-col items-center">
         <motion.p
           key={timeLeft}
-          initial={{ scale: 1.18 }}
+          initial={{ scale: 1.15 }}
           animate={{ scale: 1 }}
-          className={`text-4xl font-bold tabular-nums ${textColor}`}
+          className={`text-5xl font-black tabular-nums tracking-tight ${textColor}`}
         >
           {timeLeft}
         </motion.p>
-        <p className="text-[0.6rem] uppercase tracking-[0.22em] text-white/30 mt-0.5">seconds</p>
+        <p className="text-[0.6rem] uppercase font-bold tracking-[0.2em] text-slate-400 mt-1">seconds</p>
       </div>
     </div>
   );
@@ -89,7 +90,6 @@ export default function LiveAuctionPage() {
   const [log, setLog] = useState([]);
   const [loading, setLoading] = useState(false);
   const socketRef = useRef(null);
-  const { toasts, toast, removeToast } = useToast();
 
   const fetchStatus = async () => {
     try {
@@ -151,9 +151,9 @@ export default function LiveAuctionPage() {
     try {
       const response = await apiFetch("/admin/next-player", { method: "POST" });
       if (response.done) {
-        toast("All waiting players have been processed.", "info");
+        toast("All waiting players have been processed.", { icon: "ℹ️" });
       } else {
-        toast("Next player loaded.", "success");
+        toast.success("Next player loaded.");
         const status = await apiFetch("/admin/live-status");
         await fetchPool();
         await fetchLog();
@@ -171,7 +171,7 @@ export default function LiveAuctionPage() {
         }
       }
     } catch (error) {
-      toast(error.message, "error");
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -181,14 +181,14 @@ export default function LiveAuctionPage() {
     if (!auction || !socketRef.current) return;
     socketRef.current.emit("admin_start_clock", auction.auction_id);
     setIsActive(true);
-    toast("Auction timer started.", "success");
+    toast.success("Auction timer started.");
   };
 
   const sellPlayer = async () => {
     setLoading(true);
     try {
       await apiFetch("/admin/sell-player", { method: "POST" });
-      toast("Player marked as sold.", "success");
+      toast.success("Player marked as sold.");
       await fetchStatus();
       await fetchPool();
       await fetchLog();
@@ -196,7 +196,7 @@ export default function LiveAuctionPage() {
       setIsActive(false);
       setTimeLeft(TIMER_MAX);
     } catch (error) {
-      toast(error.message, "error");
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -207,7 +207,7 @@ export default function LiveAuctionPage() {
     setLoading(true);
     try {
       await apiFetch(`/admin/reauction/${currentPlayer.player_id}`, { method: "POST" });
-      toast("Player moved back for re-auction.", "info");
+      toast("Player moved back for re-auction.", { icon: "ℹ️" });
       await fetchStatus();
       await fetchPool();
       await fetchLog();
@@ -215,7 +215,7 @@ export default function LiveAuctionPage() {
       setIsActive(false);
       setTimeLeft(TIMER_MAX);
     } catch (error) {
-      toast(error.message, "error");
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -223,7 +223,6 @@ export default function LiveAuctionPage() {
 
   return (
     <DashboardLayout allowedRoles={["Admin", "Super Admin"]}>
-      <Toast toasts={toasts} removeToast={removeToast} />
       <PlayerStatsOverlay
         player={currentPlayer}
         visible={showOverlay}
@@ -233,20 +232,20 @@ export default function LiveAuctionPage() {
       />
 
       <PageHeader
-        title="Live Auction Floor"
+        title="Live Bidding Room"
         subtitle={
           auction
             ? `${auction.auction_name} · Season ${auction.season}`
-            : "No auction season active. Create one from Governance."
+            : "No active auction season. Create one in Season Management."
         }
         action={
           <>
-            <button className="btn-outline" onClick={nextPlayer} disabled={loading}>
+            <button className="btn btn-outline" onClick={nextPlayer} disabled={loading}>
               <CaretRight size={16} />
               Next Player
             </button>
             {currentPlayer ? (
-              <button className="btn-primary" onClick={() => setShowOverlay(true)}>
+              <button className="btn btn-primary" onClick={() => setShowOverlay(true)}>
                 <MonitorPlay size={16} />
                 Broadcast View
               </button>
@@ -255,26 +254,22 @@ export default function LiveAuctionPage() {
         }
       />
 
-      <div className="grid gap-5 xl:grid-cols-[1.12fr_0.88fr]">
-        <div className="space-y-5">
-          <SectionCard
-            title="Current Nomination"
-            sub="Focus card with live bid pressure and countdown state."
-          >
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="space-y-6">
+          <SectionCard title="Current Player">
             <AnimatePresence mode="wait">
               {currentPlayer ? (
                 <motion.div
                   key={currentPlayer.player_id}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="space-y-5"
+                  className="space-y-6"
                 >
-                  <div className="grid gap-5 lg:grid-cols-[1fr_auto]">
-                    <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[linear-gradient(135deg,rgba(245,158,11,0.07),rgba(255,255,255,0.025))] p-5">
-                      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/30 to-transparent" />
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.06]">
+                  <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
+                    <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm p-6">
+                      <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+                        <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
                           {currentPlayer.image_url ? (
                             <img
                               src={currentPlayer.image_url.startsWith("/") ? currentPlayer.image_url : `/uploads/${currentPlayer.image_url}`}
@@ -282,31 +277,43 @@ export default function LiveAuctionPage() {
                               className="h-full w-full object-cover"
                             />
                           ) : (
-                            <div className="flex h-full w-full items-center justify-center text-amber-400/60">
-                              <Trophy size={32} weight="duotone" />
+                            <div className="flex h-full w-full items-center justify-center text-slate-300">
+                              <Trophy size={40} weight="light" />
                             </div>
                           )}
                         </div>
                         <div className="flex-1">
-                          <h2 className="text-3xl font-bold tracking-[-0.05em] text-white leading-tight">
+                          <h2 className="text-4xl font-black tracking-tight text-slate-900 leading-none">
                             {currentPlayer.name}
                           </h2>
-                          <p className="mt-1.5 text-sm text-white/45">
-                            {currentPlayer.role || "Player"} · {currentPlayer.country_name || "Unknown"}
+                          <p className="mt-2 text-sm font-medium text-slate-500 flex items-center">
+                            {currentPlayer.role || "Player"} <span className="mx-2 text-slate-300">•</span> 
+                            {currentPlayer.country_code && (
+                              <img
+                                src={`https://flagcdn.com/w40/${currentPlayer.country_code.toLowerCase()}.png`}
+                                alt=""
+                                className="country-flag !mr-2"
+                              />
+                            )}
+                            {currentPlayer.country_name || "Unknown"}
                           </p>
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <span className="badge badge-neutral">{currentPlayer.category_name || "Open"}</span>
-                            <span className="badge badge-gold">Base {formatCurrency(currentPlayer.base_price)}</span>
+                          <div className="mt-4 flex flex-wrap gap-2.5">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                              {currentPlayer.category_name || "Open"}
+                            </span>
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
+                              Base {formatCurrency(currentPlayer.base_price)}
+                            </span>
                           </div>
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-center lg:py-0">
-                      <div className="flex flex-col items-center">
+                      <div className="flex flex-col items-center bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                         <TimerRing timeLeft={timeLeft} isActive={isActive} />
-                        <p className="mt-3 text-[0.65rem] uppercase tracking-[0.2em] text-white/30">
-                          {isActive ? "Counting down" : "Clock stopped"}
+                        <p className="mt-4 text-[0.65rem] font-bold uppercase tracking-widest text-slate-400">
+                          {isActive ? "Bidding in Progress" : "Clock Paused"}
                         </p>
                       </div>
                     </div>
@@ -315,45 +322,49 @@ export default function LiveAuctionPage() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <motion.div
                       key={highestBid}
-                      initial={{ scale: 1.04 }}
+                      initial={{ scale: 1.02 }}
                       animate={{ scale: 1 }}
-                      className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.03] p-5"
+                      className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
                     >
-                      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/20 to-transparent" />
-                      <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white/30">
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
                         Current Bid
                       </p>
-                      <p className="kpi-value mt-3 text-4xl font-bold text-amber-400">
+                      <p className="mt-3 text-5xl font-black tracking-tighter text-slate-900">
                         {formatCurrency(highestBid || currentPlayer.base_price)}
                       </p>
-                      <p className="mt-2 text-xs text-white/40">
+                      <p className="mt-3 text-sm font-medium text-slate-500">
                         {highestBidder
-                          ? `Leading: ${highestBidder.team_name}`
+                          ? <span className="text-blue-600">Leading: {highestBidder.team_name}</span>
                           : "No bids placed yet"}
                       </p>
                     </motion.div>
 
-                    <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-5">
-                      <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white/30">
-                        Lot Status
-                      </p>
-                      <div className="mt-3 flex items-center gap-2">
-                        <div className={`h-2 w-2 rounded-full ${isActive ? "bg-emerald-400 animate-pulse" : "bg-white/20"}`} />
-                        <p className="text-sm font-semibold text-white/75">
-                          {isActive ? "Bidding live" : "Awaiting start"}
+                    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                          Lot Status
                         </p>
+                        <div className="mt-4 flex items-center gap-3">
+                          <div className="relative flex h-3 w-3">
+                            {isActive && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
+                            <span className={`relative inline-flex rounded-full h-3 w-3 ${isActive ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
+                          </div>
+                          <p className="text-lg font-bold text-slate-900">
+                            {isActive ? "Live" : "Awaiting"}
+                          </p>
+                        </div>
                       </div>
-                      <p className="mt-2 text-xs text-white/40">
+                      <p className="mt-4 text-sm font-medium text-slate-500">
                         Pool waiting: {pool.length} players
                       </p>
                     </div>
                   </div>
                 </motion.div>
               ) : (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.1] bg-white/[0.02] py-14 text-center">
-                  <Timer size={28} className="text-white/20 mb-3" weight="duotone" />
-                  <p className="text-sm text-white/35">
-                    Press <span className="font-semibold text-white/60">Next Player</span> to begin nominations.
+                <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 py-20 text-center">
+                  <Timer size={40} className="text-slate-300 mb-4" weight="light" />
+                  <p className="text-slate-500 font-medium">
+                    Press <span className="font-bold text-slate-700">Next Player</span> to begin nominations.
                   </p>
                 </div>
               )}
@@ -367,25 +378,22 @@ export default function LiveAuctionPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
               >
-                <SectionCard
-                  title="Auction Controls"
-                  sub="Drive timer state and final player outcome."
-                >
-                  <div className="flex flex-wrap gap-2.5">
-                    <button className="btn-primary" onClick={startClock} disabled={isActive || loading}>
-                      <Timer size={16} />
+                <SectionCard title="Auction Controls">
+                  <div className="flex flex-wrap gap-3">
+                    <button className="btn btn-primary" onClick={startClock} disabled={isActive || loading}>
+                      <Timer size={18} />
                       Start Clock
                     </button>
-                    <button className="btn-primary" onClick={sellPlayer} disabled={loading}>
-                      <CheckCircle size={16} />
+                    <button className="btn btn-primary bg-emerald-600 hover:bg-emerald-700 text-white" onClick={sellPlayer} disabled={loading}>
+                      <CheckCircle size={18} />
                       Mark Sold
                     </button>
-                    <button className="btn-outline" onClick={reAuction} disabled={loading}>
-                      <ArrowClockwise size={16} />
+                    <button className="btn btn-outline" onClick={reAuction} disabled={loading}>
+                      <ArrowClockwise size={18} />
                       Re-auction
                     </button>
-                    <button className="btn-danger" onClick={nextPlayer} disabled={loading}>
-                      <SkipForward size={16} />
+                    <button className="btn btn-outline text-red-600 hover:bg-red-50 hover:border-red-200" onClick={nextPlayer} disabled={loading}>
+                      <SkipForward size={18} />
                       Skip as Unsold
                     </button>
                   </div>
@@ -395,9 +403,9 @@ export default function LiveAuctionPage() {
           </AnimatePresence>
         </div>
 
-        <div className="space-y-5">
-          <SectionCard title={`Waiting Pool · ${pool.length}`} padded={false}>
-            <div className="max-h-[400px] overflow-y-auto">
+        <div className="space-y-6">
+          <SectionCard title={`Upcoming Players · ${pool.length}`} padded={false}>
+            <div className="max-h-[420px] overflow-y-auto">
               {pool.length ? (
                 pool.map((item, index) => (
                   <motion.div
@@ -405,47 +413,69 @@ export default function LiveAuctionPage() {
                     initial={{ opacity: 0, x: -6 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.03 }}
-                    className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5 last:border-b-0 hover:bg-white/[0.025] transition"
+                    className="flex items-center justify-between border-b border-slate-100 px-6 py-4 last:border-b-0 hover:bg-slate-50 transition"
                   >
                     <div>
-                      <p className="text-sm font-semibold text-white/85">{item.name}</p>
-                      <p className="mt-0.5 text-xs text-white/35">
-                        Lot #{item.lot_number} · {item.role}
+                      <p className="text-sm font-bold text-slate-900">{item.name}</p>
+                      <p className="mt-1 text-xs font-medium text-slate-500 flex items-center gap-2">
+                        Lot #{item.lot_number} <span className="mx-1 text-slate-300">•</span> 
+                        {item.country_code && (
+                          <img
+                            src={`https://flagcdn.com/w40/${item.country_code.toLowerCase()}.png`}
+                            alt=""
+                            className="country-flag !w-4 !h-3 !mr-0"
+                          />
+                        )}
+                        {item.role}
                       </p>
                     </div>
-                    <span className="text-xs font-semibold text-amber-400">
+                    <span className="text-sm font-bold text-slate-700">
                       {formatCurrency(item.base_price)}
                     </span>
                   </motion.div>
                 ))
               ) : (
-                <div className="px-5 py-10 text-center text-sm text-white/28">
-                  No waiting players remain.
+                <div className="px-6 py-12 text-center text-sm font-medium text-slate-400">
+                  No more upcoming players.
                 </div>
               )}
             </div>
           </SectionCard>
 
           <SectionCard title="Auction Log" padded={false}>
-            <div className="max-h-[400px] overflow-y-auto">
+            <div className="max-h-[420px] overflow-y-auto">
               {log.length ? (
                 log.map((item, index) => (
                   <div
                     key={`${item.log_time}-${index}`}
-                    className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5 last:border-b-0"
+                    className="flex items-center justify-between border-b border-slate-100 px-6 py-4 last:border-b-0"
                   >
                     <div>
-                      <p className="text-sm font-semibold text-white/80">{item.player_name || "System event"}</p>
-                      <p className="mt-0.5 text-xs text-white/32">
-                        {item.team_name || "—"} · {formatTime(item.log_time)}
+                      <p className="text-sm font-bold text-slate-900">{item.player_name || "System event"}</p>
+                      <p className="mt-1 text-xs font-medium text-slate-500 flex items-center gap-2">
+                        {item.team_name || "—"} <span className="mx-1 text-slate-300">•</span> 
+                        {item.country_code && (
+                          <img
+                            src={`https://flagcdn.com/w40/${item.country_code.toLowerCase()}.png`}
+                            alt=""
+                            className="country-flag !w-4 !h-3 !mr-0"
+                          />
+                        )}
+                        {formatTime(item.log_time)}
                       </p>
                     </div>
                     <div className="text-right">
-                      <span className={`badge ${item.action === "SOLD" ? "badge-success" : item.action === "UNSOLD" ? "badge-danger" : "badge-neutral"}`}>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[0.65rem] font-bold tracking-widest uppercase ${
+                        item.action === "SOLD"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : item.action === "UNSOLD"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-slate-100 text-slate-600"
+                      }`}>
                         {item.action}
                       </span>
                       {item.amount ? (
-                        <p className="mt-1.5 text-xs font-semibold text-amber-400">
+                        <p className="mt-2 text-sm font-bold text-blue-600">
                           {formatCurrency(item.amount)}
                         </p>
                       ) : null}
@@ -453,7 +483,7 @@ export default function LiveAuctionPage() {
                   </div>
                 ))
               ) : (
-                <div className="px-5 py-10 text-center text-sm text-white/28">
+                <div className="px-6 py-12 text-center text-sm font-medium text-slate-400">
                   No activity recorded yet.
                 </div>
               )}

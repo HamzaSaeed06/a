@@ -31,30 +31,24 @@ export default function AdminDashboard() {
 
   return (
     <DashboardLayout allowedRoles={["Admin", "Super Admin"]}>
-      <PageHeader
-        title="Auction Control Room"
-        subtitle="Operations dashboard — teams, players, pool readiness, and live sale floor."
-      />
+      <PageHeader title="Auction Control Center" />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-        <StatCard title="Teams" value={stats?.total_teams ?? "—"} icon={UsersThree} />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        <StatCard title="Teams" value={stats?.total_teams ?? "—"} icon={UsersThree} tone="accent" />
         <StatCard title="Players" value={stats?.total_players ?? "—"} icon={Warehouse} />
         <StatCard title="Sold" value={stats?.sold_players ?? "—"} icon={FlagBanner} tone="success" />
-        <StatCard title="Unsold" value={stats?.unsold_players ?? "—"} icon={Broadcast} />
+        <StatCard title="Unsold" value={stats?.unsold_players ?? "—"} icon={Broadcast} tone="warning" />
         <StatCard title="Total Bids" value={stats?.total_bids ?? "—"} icon={TrendUp} tone="accent" />
-        <StatCard title="Total Spend" value={formatCurrency(stats?.total_spent)} icon={CurrencyCircleDollar} tone="accent" />
+        <StatCard title="Total Spend" value={formatCurrency(stats?.total_spent)} icon={CurrencyCircleDollar} tone="success" />
       </div>
 
-      <div className="mt-6 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-        <SectionCard
-          title="Recent Auction Activity"
-          sub="Latest bid events and sale actions across the floor."
-          padded={false}
-        >
-          <div className="table-wrap">
-            <table>
+      <div className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <SectionCard title="Live Auction Feed" padded={false}>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th>S.No</th>
                   <th>Time</th>
                   <th>Player</th>
                   <th>Team</th>
@@ -62,7 +56,7 @@ export default function AdminDashboard() {
                   <th>Amount</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {log.length ? (
                   log.map((item, index) => (
                     <motion.tr
@@ -70,31 +64,44 @@ export default function AdminDashboard() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: index * 0.03 }}
+                      className="hover:bg-slate-50 transition"
                     >
-                      <td className="text-white/35 text-xs">{formatTime(item.log_time)}</td>
-                      <td className="font-semibold text-white/90">{item.player_name || "—"}</td>
-                      <td className="text-white/55">{item.team_name || "—"}</td>
-                      <td>
+                      <td>{index + 1}</td>
+                      <td className="text-sm text-slate-500 whitespace-nowrap">{formatTime(item.log_time)}</td>
+                      <td className="text-sm font-semibold text-slate-900">
+                        <div className="flex items-center gap-2">
+                          {item.country_code && (
+                            <img
+                              src={`https://flagcdn.com/w40/${item.country_code.toLowerCase()}.png`}
+                              alt=""
+                              className="country-flag"
+                            />
+                          )}
+                          {item.player_name || "—"}
+                        </div>
+                      </td>
+                      <td className="text-sm text-slate-600">{item.team_name || "—"}</td>
+                      <td className="text-sm">
                         <span
-                          className={`badge ${
+                          className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold tracking-widest uppercase ${
                             item.action === "SOLD"
-                              ? "badge-success"
+                              ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
                               : item.action === "UNSOLD"
-                                ? "badge-danger"
-                                : "badge-neutral"
+                                ? "bg-red-100 text-red-700 border border-red-200"
+                                : "bg-slate-100 text-slate-600 border border-slate-200"
                           }`}
                         >
                           {item.action}
                         </span>
                       </td>
-                      <td className="font-semibold text-amber-400">
+                      <td className="text-sm font-semibold text-blue-600">
                         {item.amount ? formatCurrency(item.amount) : "—"}
                       </td>
                     </motion.tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-white/30">
+                    <td colSpan={5} className="text-center text-slate-400 text-sm">
                       No activity logged yet.
                     </td>
                   </tr>
@@ -104,21 +111,21 @@ export default function AdminDashboard() {
           </div>
         </SectionCard>
 
-        <SectionCard title="Execution Notes" sub="Operational priorities for the auction floor.">
-          <div className="grid gap-3">
+        <SectionCard title="Operational Guidelines">
+          <div className="grid gap-4">
             {[
-              { text: "Verify player pool order before starting live bidding.", icon: "01" },
-              { text: "Keep franchise budgets aligned with every sale event.", icon: "02" },
-              { text: "Use broadcast overlay to present player context during rounds.", icon: "03" },
+              { text: "Ensure the player pool is correctly ordered before initiating the auction.", icon: "01" },
+              { text: "Monitor franchise budgets after each successful bid.", icon: "02" },
+              { text: "Activate the Broadcast View to display player statistics during bidding.", icon: "03" },
             ].map((item) => (
               <div
                 key={item.icon}
-                className="flex items-start gap-3 rounded-xl border border-white/[0.07] bg-white/[0.03] p-4"
+                className="flex items-start gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4"
               >
-                <span className="shrink-0 rounded-lg border border-white/10 bg-white/[0.05] px-2 py-0.5 text-[0.6rem] font-bold text-white/30 tracking-widest">
+                <span className="shrink-0 rounded-lg bg-white border border-slate-200 px-2 py-1 text-xs font-bold text-slate-500 shadow-sm">
                   {item.icon}
                 </span>
-                <p className="text-sm leading-6 text-white/48">{item.text}</p>
+                <p className="text-sm leading-6 text-slate-600 font-medium">{item.text}</p>
               </div>
             ))}
           </div>

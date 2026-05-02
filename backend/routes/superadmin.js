@@ -139,7 +139,8 @@ router.get('/countries', async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT c.*,
-              COALESCE(c.country_code, c.region, '') AS country_code,
+              c.country_code,
+              c.region AS dial_code,
               (SELECT COUNT(*) FROM Players p WHERE p.country_id = c.country_id) AS player_count
        FROM Countries c ORDER BY c.country_name`
     );
@@ -148,27 +149,18 @@ router.get('/countries', async (req, res) => {
 });
 
 router.post('/countries', async (req, res) => {
-  const { country_name, country_code } = req.body;
+  const { country_name, country_code, dial_code } = req.body;
   if (!country_name) return res.status(400).json({ error: 'Country name required.' });
   try {
-    // Try inserting with country_code; fall back to region if column doesn't exist
-    try {
-      await db.query('INSERT INTO Countries (country_name, region, country_code) VALUES (?, ?, ?)', [country_name, country_code, country_code]);
-    } catch (e) {
-      await db.query('INSERT INTO Countries (country_name, region) VALUES (?, ?)', [country_name, country_code]);
-    }
+    await db.query('INSERT INTO Countries (country_name, region, country_code) VALUES (?, ?, ?)', [country_name, dial_code || '', country_code || '']);
     res.json({ message: 'Country added.' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.put('/countries/:id', async (req, res) => {
-  const { country_name, country_code } = req.body;
+  const { country_name, country_code, dial_code } = req.body;
   try {
-    try {
-      await db.query('UPDATE Countries SET country_name = ?, region = ?, country_code = ? WHERE country_id = ?', [country_name, country_code, country_code, req.params.id]);
-    } catch (e) {
-      await db.query('UPDATE Countries SET country_name = ?, region = ? WHERE country_id = ?', [country_name, country_code, req.params.id]);
-    }
+    await db.query('UPDATE Countries SET country_name = ?, region = ?, country_code = ? WHERE country_id = ?', [country_name, dial_code || '', country_code || '', req.params.id]);
     res.json({ message: 'Country updated.' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

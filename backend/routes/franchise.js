@@ -26,7 +26,7 @@ router.get('/my-squad', async (req, res) => {
     const team_id = req.user.team_id;
     if (!team_id) return res.json([]);
     const [rows] = await db.query(
-      `SELECT p.*, ps.final_price, c.country_name, pc.category_name
+      `SELECT p.*, ps.final_price, c.country_name, c.country_code, pc.category_name
        FROM Player_Sale ps
        JOIN Players p ON ps.player_id = p.player_id
        LEFT JOIN Countries c ON p.country_id = c.country_id

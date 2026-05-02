@@ -24,78 +24,49 @@ import { cn } from "../lib/format";
 
 const SUPER_ADMIN_LINKS = [
   { href: "/super-admin", label: "Overview", icon: HouseLine },
-  { href: "/super-admin/users", label: "Users", icon: UserList },
+  { href: "/super-admin/users", label: "System Users", icon: UserList },
   { href: "/super-admin/categories", label: "Categories", icon: Stack },
   { href: "/super-admin/countries", label: "Countries", icon: GlobeHemisphereWest },
-  { href: "/super-admin/seasons", label: "Auctions", icon: Sparkle },
+  { href: "/super-admin/seasons", label: "Seasons", icon: Sparkle },
 ];
 
 const ADMIN_LINKS = [
-  { href: "/admin", label: "Control Room", icon: ChartLineUp },
-  { href: "/admin/teams", label: "Teams", icon: UsersThree },
+  { href: "/admin", label: "Auction Center", icon: ChartLineUp },
+  { href: "/admin/teams", label: "Franchises", icon: UsersThree },
   { href: "/admin/players", label: "Players", icon: IdentificationBadge },
   { href: "/admin/pool", label: "Auction Pool", icon: ListChecks },
-  { href: "/admin/live-auction", label: "Live Auction", icon: Broadcast },
+  { href: "/admin/live-auction", label: "Live Bidding", icon: Broadcast },
 ];
 
 const FRANCHISE_LINKS = [
-  { href: "/franchise", label: "Franchise Desk", icon: HouseLine },
+  { href: "/franchise", label: "Franchise Dashboard", icon: HouseLine },
   { href: "/franchise/live-auction", label: "Live Bidding", icon: ArrowsLeftRight },
 ];
 
-function NavLink({ href, label, icon: Icon, active, collapsed }) {
+function NavLink({ href, label, icon: Icon, active }) {
   return (
     <Link href={href}>
-      <motion.div
-        whileHover={{ x: collapsed ? 0 : 2 }}
+      <div
         className={cn(
-          "relative flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-150",
-          collapsed ? "justify-center" : "",
+          "relative flex items-center gap-3 rounded-md px-3 py-2 transition-all duration-150",
           active
-            ? "bg-amber-400/10 text-amber-400"
-            : "text-white/40 hover:bg-white/[0.05] hover:text-white/75",
+            ? "bg-slate-100 text-slate-900 font-semibold"
+            : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
         )}
       >
-        {active && (
-          <motion.div
-            layoutId="sidebar-active-indicator"
-            className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-amber-400"
-          />
-        )}
-        <Icon size={18} weight={active ? "fill" : "duotone"} className="shrink-0" />
-        <AnimatePresence>
-          {!collapsed ? (
-            <motion.span
-              initial={{ opacity: 0, x: -6 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -4 }}
-              transition={{ duration: 0.15 }}
-              className="text-[0.825rem] font-medium"
-            >
-              {label}
-            </motion.span>
-          ) : null}
-        </AnimatePresence>
-      </motion.div>
+        <Icon size={18} weight={active ? "fill" : "regular"} className="shrink-0" />
+        <span className="text-sm">{label}</span>
+      </div>
     </Link>
   );
 }
 
-function NavGroup({ title, links, pathname, collapsed }) {
+function NavGroup({ title, links, pathname }) {
   return (
-    <div className="space-y-0.5">
-      <AnimatePresence>
-        {!collapsed ? (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="mb-2 px-3 text-[0.6rem] font-bold uppercase tracking-[0.22em] text-white/20"
-          >
-            {title}
-          </motion.p>
-        ) : null}
-      </AnimatePresence>
+    <div className="flex flex-col gap-1">
+      <p className="mb-2 px-3 text-[0.7rem] font-medium text-slate-400">
+        {title}
+      </p>
       {links.map(({ href, label, icon }) => {
         const active = pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
         return (
@@ -105,7 +76,6 @@ function NavGroup({ title, links, pathname, collapsed }) {
             label={label}
             icon={icon}
             active={active}
-            collapsed={collapsed}
           />
         );
       })}
@@ -116,7 +86,6 @@ function NavGroup({ title, links, pathname, collapsed }) {
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
 
   const groups = useMemo(() => {
     if (user?.role === "Super Admin") {
@@ -133,122 +102,103 @@ export default function Sidebar() {
 
   const roleColor =
     user?.role === "Super Admin"
-      ? "text-purple-400 bg-purple-400/10 border-purple-400/20"
+      ? "text-purple-700 bg-purple-50 border-purple-200"
       : user?.role === "Admin"
-        ? "text-amber-400 bg-amber-400/10 border-amber-400/20"
-        : "text-emerald-400 bg-emerald-400/10 border-emerald-400/20";
+        ? "text-blue-700 bg-blue-50 border-blue-200"
+        : "text-emerald-700 bg-emerald-50 border-emerald-200";
 
   return (
-    <motion.aside
-      animate={{ width: collapsed ? 76 : 260 }}
-      transition={{ type: "spring", stiffness: 240, damping: 28 }}
-      className="sticky top-4 m-4 hidden h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-2xl border border-white/[0.07] bg-[#0a0a12] shadow-[0_4px_40px_rgba(0,0,0,0.6)] lg:flex"
-    >
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(245,158,11,0.04),transparent_60%)] pointer-events-none" />
-
-      <div className="relative p-4 pb-3">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-400/10 border border-amber-400/20 text-amber-400">
-            <ShieldCheck size={18} weight="fill" />
+    <aside className="fixed inset-y-0 left-0 z-50 w-64 h-screen bg-white border-r border-slate-200 flex flex-col hidden lg:flex">
+      <div className="p-6 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-slate-900 text-white">
+            <ShieldCheck size={20} weight="fill" />
           </div>
-          <AnimatePresence>
-            {!collapsed ? (
-              <motion.div
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -8 }}
-                className="min-w-0"
-              >
-                <p className="text-[0.9rem] font-bold tracking-[-0.03em] text-white truncate">
-                  Auction OS
-                </p>
-                <p className="text-[0.62rem] uppercase tracking-[0.2em] text-white/30">
-                  Command Layer
-                </p>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
+          <div className="min-w-0">
+            <p className="text-sm font-bold tracking-tight text-slate-900 truncate">
+              Auction OS
+            </p>
+            <p className="text-[0.65rem] text-slate-500">
+              Command Layer
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="mx-4 h-px bg-white/[0.06]" />
 
-      <AnimatePresence>
-        {!collapsed ? (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="px-4 py-3"
-          >
-            <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-3">
-              <p className="truncate text-[0.8rem] font-semibold text-white/80">{user?.username}</p>
-              <span
-                className={cn(
-                  "mt-1.5 inline-block rounded-md border px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.14em]",
-                  roleColor,
-                )}
-              >
-                {user?.role}
-              </span>
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-4">
+      <div data-lenis-prevent className="flex-1 overflow-y-auto px-4 py-4 space-y-8 scrollbar-hide">
         {groups.map((group) => (
           <NavGroup
             key={group.title}
             title={group.title}
             links={group.links}
             pathname={pathname}
-            collapsed={collapsed}
           />
         ))}
       </div>
 
-      <div className="mx-4 h-px bg-white/[0.06]" />
+      {/* Bottom User Card */}
+      <div className="p-3 border-t border-slate-100">
+        <UserMenu user={user} logout={logout} />
+      </div>
+    </aside>
+  );
+}
 
-      <div className="p-3 space-y-1">
-        <button
-          className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.825rem] font-medium text-white/35 transition hover:bg-white/[0.05] hover:text-white/60"
-          onClick={() => setCollapsed((v) => !v)}
-        >
-          <motion.svg
-            animate={{ rotate: collapsed ? 180 : 0 }}
-            transition={{ duration: 0.25 }}
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            className="shrink-0"
-          >
-            <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </motion.svg>
-          <AnimatePresence>
-            {!collapsed ? (
-              <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                Collapse
-              </motion.span>
-            ) : null}
-          </AnimatePresence>
-        </button>
+function UserMenu({ user, logout }) {
+  const [open, setOpen] = useState(false);
 
+  const avatarBg =
+    user?.role === "Super Admin" ? "bg-purple-600"
+    : user?.role === "Admin" ? "bg-slate-900"
+    : "bg-emerald-600";
+
+  return (
+    <div className="relative">
+      <div className="flex items-center gap-3 rounded-md px-3 py-2">
+        {/* Name left */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-slate-900 truncate">
+            {user?.username || "User"}
+          </p>
+          <p className="text-[0.6rem] font-medium text-slate-400 truncate mt-0.5">
+            {user?.role || ""}
+          </p>
+        </div>
+
+        {/* Avatar right - clickable */}
         <button
-          className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.825rem] font-medium text-white/35 transition hover:bg-red-500/[0.07] hover:text-red-400"
-          onClick={logout}
+          onClick={() => setOpen((v) => !v)}
+          className={`shrink-0 h-7 w-7 rounded-md flex items-center justify-center text-white text-xs font-bold transition hover:opacity-80 ${avatarBg}`}
         >
-          <SignOut size={16} className="shrink-0" />
-          <AnimatePresence>
-            {!collapsed ? (
-              <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                Sign out
-              </motion.span>
-            ) : null}
-          </AnimatePresence>
+          {(user?.username || "U").charAt(0).toUpperCase()}
         </button>
       </div>
-    </motion.aside>
+
+      {/* Dropdown */}
+      <AnimatePresence>
+        {open && (
+          <>
+            {/* Backdrop */}
+            <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: 6, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 6, scale: 0.97 }}
+              transition={{ duration: 0.15 }}
+              className="absolute bottom-12 right-0 z-20 w-40 rounded-md border border-slate-200 bg-white shadow-md py-1"
+            >
+              <button
+                onClick={() => { setOpen(false); logout(); }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition"
+              >
+                <SignOut size={15} />
+                Sign out
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

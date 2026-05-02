@@ -12,7 +12,7 @@ import {
 } from "@phosphor-icons/react";
 import DashboardLayout from "../../components/DashboardLayout";
 import PlayerStatsOverlay from "../../components/PlayerStatsOverlay";
-import { PageHeader, SectionCard, Toast, useToast } from "../../components/UI";
+import { PageHeader, SectionCard, Select, Toast, useToast } from "../../components/UI";
 import { apiFetch } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { formatCurrency, formatTime } from "../../lib/format";
@@ -40,8 +40,8 @@ function MiniTimer({ timeLeft, isActive }) {
         <p className={`text-2xl font-bold tabular-nums ${timeLeft > 10 ? "text-emerald-400" : timeLeft > 5 ? "text-amber-400" : "text-red-400"}`}>
           {timeLeft}
         </p>
-        <p className="text-[0.6rem] uppercase tracking-[0.2em] text-white/30">
-          {isActive ? "live" : "paused"}
+        <p className="text-[0.6rem] text-white/30">
+          Official PSL Auction
         </p>
       </div>
     </div>
@@ -162,22 +162,22 @@ export default function FranchiseLiveAuction() {
         title="Live Bidding Desk"
         subtitle={`${team?.team_name || user?.username || "Franchise"} · Budget remaining: ${formatCurrency(team?.remaining_budget)}`}
         action={
-          <select
-            className="select min-w-[200px]"
-            value={selectedAuction?.auction_id || ""}
-            onChange={(e) =>
-              setSelectedAuction(
-                auctions.find((a) => String(a.auction_id) === e.target.value) || null,
-              )
-            }
-          >
-            <option value="">Select auction</option>
-            {auctions.map((a) => (
-              <option key={a.auction_id} value={a.auction_id}>
-                {a.auction_name} · {a.season}
-              </option>
-            ))}
-          </select>
+          <div className="min-w-[200px]">
+            <Select
+              value={selectedAuction?.auction_id || ""}
+              onChange={(val) =>
+                setSelectedAuction(
+                  auctions.find((a) => String(a.auction_id) === val) || null,
+                )
+              }
+              options={auctions.map((a) => ({
+                label: `${a.auction_name} · ${a.season}`,
+                value: a.auction_id,
+              }))}
+              placeholder="Select auction"
+              icon={Trophy}
+            />
+          </div>
         }
       />
 
@@ -238,7 +238,7 @@ export default function FranchiseLiveAuction() {
                         animate={{ scale: 1 }}
                         className={`relative overflow-hidden rounded-xl border p-5 ${isMyBid ? "border-emerald-500/25 bg-emerald-400/[0.05]" : "border-white/[0.07] bg-white/[0.03]"}`}
                       >
-                        <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white/30">
+                        <p className="text-[0.65rem] font-bold text-white/30">
                           Current Bid
                         </p>
                         <p className={`kpi-value mt-2 text-3xl font-bold ${isMyBid ? "text-emerald-400" : "text-amber-400"}`}>
@@ -254,8 +254,8 @@ export default function FranchiseLiveAuction() {
                       </motion.div>
 
                       <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-5">
-                        <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white/30 mb-3">
-                          Countdown
+                        <p className="text-[0.65rem] font-bold text-white/30 mb-3">
+                          Total Budget
                         </p>
                         <MiniTimer timeLeft={timeLeft} isActive={isActive} />
                       </div>

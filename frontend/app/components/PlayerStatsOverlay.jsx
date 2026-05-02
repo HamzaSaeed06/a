@@ -15,12 +15,12 @@ import { formatCurrency } from "../lib/format";
 
 function Metric({ label, value, icon: Icon }) {
   return (
-    <div className="rounded-xl border border-white/[0.07] bg-white/[0.04] p-3.5">
-      <div className="mb-2 flex items-center gap-1.5 text-[0.62rem] uppercase tracking-[0.18em] text-white/35">
-        <Icon size={12} />
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-2 flex items-center gap-1.5 text-[0.65rem] font-bold text-slate-400">
+        <Icon size={14} />
         {label}
       </div>
-      <div className="text-sm font-semibold text-white/85">{value || "—"}</div>
+      <div className="text-sm font-bold text-slate-800">{value || "—"}</div>
     </div>
   );
 }
@@ -33,7 +33,7 @@ export default function PlayerStatsOverlay({ player, visible, onClose, bidAmount
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[600] flex items-center justify-center bg-black/80 px-4 py-8 backdrop-blur-md"
+          className="fixed inset-0 z-[600] flex items-center justify-center bg-slate-900/60 px-4 py-8 backdrop-blur-sm"
           onClick={(e) => { if (e.target === e.currentTarget && onClose) onClose(); }}
         >
           <motion.div
@@ -41,29 +41,26 @@ export default function PlayerStatsOverlay({ player, visible, onClose, bidAmount
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.97 }}
             transition={{ type: "spring", stiffness: 280, damping: 24 }}
-            className="relative w-full max-w-4xl overflow-hidden rounded-2xl border border-white/[0.09] bg-[#090912] shadow-[0_48px_120px_rgba(0,0,0,0.7)]"
+            className="relative w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
           >
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/40 to-transparent" />
-            <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-amber-400/5 blur-3xl pointer-events-none" />
-
             {onClose && (
               <button
                 onClick={onClose}
-                className="absolute right-4 top-4 z-10 rounded-xl border border-white/[0.08] bg-white/[0.05] p-2 text-white/40 transition hover:bg-white/[0.09] hover:text-white/75"
+                className="absolute right-6 top-6 z-10 rounded-full border border-slate-200 bg-slate-50 p-2.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             )}
 
-            <div className="grid lg:grid-cols-[1.25fr_0.75fr]">
-              <div className="relative overflow-hidden border-b border-white/[0.07] p-7 lg:border-b-0 lg:border-r lg:border-r-white/[0.07]">
-                <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/8 px-3.5 py-1.5 text-[0.65rem] font-bold uppercase tracking-[0.22em] text-amber-400">
-                  <Broadcast size={12} />
+            <div className="grid lg:grid-cols-[1.3fr_0.7fr]">
+              <div className="relative overflow-hidden border-b border-slate-100 p-8 lg:border-b-0 lg:border-r">
+                <div className="mb-6 inline-flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-[0.65rem] font-bold text-blue-700">
+                  <Broadcast size={14} weight="bold" />
                   Broadcast View
                 </div>
 
-                <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-                  <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06]">
+                <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+                  <div className="h-28 w-28 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
                     {player.image_url ? (
                       <img
                         src={player.image_url.startsWith("/") ? player.image_url : `/uploads/${player.image_url}`}
@@ -71,56 +68,56 @@ export default function PlayerStatsOverlay({ player, visible, onClose, bidAmount
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-amber-400/50">
-                        <ShieldStar size={36} weight="duotone" />
+                      <div className="flex h-full w-full items-center justify-center text-slate-300">
+                        <ShieldStar size={48} weight="light" />
                       </div>
                     )}
                   </div>
                   <div>
-                    <h2 className="text-3xl font-bold tracking-[-0.05em] text-white">
+                    <h2 className="text-4xl font-black tracking-tight text-slate-900">
                       {player.name}
                     </h2>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="badge badge-neutral">{player.role || "Player"}</span>
+                    <div className="mt-4 flex flex-wrap gap-2.5">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold text-slate-600 border border-slate-200 bg-slate-100">{player.role || "Player"}</span>
                       {player.country_name && (
-                        <span className="badge badge-neutral">{player.country_name}</span>
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold text-slate-600 border border-slate-200 bg-slate-100">{player.country_name}</span>
                       )}
                       {player.category_name && (
-                        <span className="badge badge-gold">{player.category_name}</span>
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold text-amber-700 border border-amber-200 bg-amber-50">{player.category_name}</span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-7 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-xl border border-white/[0.07] bg-white/[0.04] p-4">
-                    <div className="mb-1.5 text-[0.62rem] uppercase tracking-[0.18em] text-white/30 flex items-center gap-1.5">
-                      <Cricket size={12} />
+                <div className="mt-8 grid gap-4 sm:grid-cols-3">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+                    <div className="mb-2 text-[0.65rem] font-bold text-slate-500 flex items-center gap-1.5">
+                      <Cricket size={14} />
                       Base Price
                     </div>
-                    <p className="text-base font-bold text-amber-400">{formatCurrency(player.base_price)}</p>
+                    <p className="text-lg font-black text-slate-900">{formatCurrency(player.base_price)}</p>
                   </div>
-                  <div className="rounded-xl border border-amber-500/20 bg-amber-400/[0.06] p-4">
-                    <div className="mb-1.5 text-[0.62rem] uppercase tracking-[0.18em] text-amber-400/60 flex items-center gap-1.5">
-                      <Target size={12} />
+                  <div className="rounded-xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
+                    <div className="mb-2 text-[0.65rem] font-bold text-blue-600 flex items-center gap-1.5">
+                      <Target size={14} />
                       Current Bid
                     </div>
-                    <p className="text-base font-bold text-amber-400">{formatCurrency(bidAmount || player.base_price)}</p>
+                    <p className="text-lg font-black text-blue-700">{formatCurrency(bidAmount || player.base_price)}</p>
                   </div>
-                  <div className={`rounded-xl border p-4 ${bidder ? "border-emerald-500/20 bg-emerald-400/[0.05]" : "border-white/[0.07] bg-white/[0.04]"}`}>
-                    <div className="mb-1.5 text-[0.62rem] uppercase tracking-[0.18em] text-white/30 flex items-center gap-1.5">
-                      <Trophy size={12} />
+                  <div className={`rounded-xl border p-5 shadow-sm ${bidder ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
+                    <div className={`mb-2 text-[0.65rem] font-bold flex items-center gap-1.5 ${bidder ? "text-emerald-600" : "text-slate-500"}`}>
+                      <Trophy size={14} />
                       Leader
                     </div>
-                    <p className={`text-sm font-bold truncate ${bidder ? "text-emerald-400" : "text-white/40"}`}>
+                    <p className={`text-sm font-black truncate ${bidder ? "text-emerald-700" : "text-slate-400"}`}>
                       {bidder?.team_name || "Awaiting bids"}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-3 bg-white/[0.02] p-7">
-                <p className="text-[0.62rem] uppercase tracking-[0.2em] text-white/28 mb-4">
+              <div className="space-y-4 bg-slate-50 p-8">
+                <p className="text-[0.65rem] font-bold text-slate-400 mb-5">
                   Player Profile
                 </p>
                 <Metric label="Batting Style" value={player.batting_style} icon={Cricket} />

@@ -30,54 +30,51 @@ export default function SuperAdminPage() {
   const quickLinks = [
     {
       href: "/super-admin/users",
-      title: "Identity & Roles",
-      sub: "Create, suspend, and govern access across the platform.",
+      title: "User Management",
+      sub: "Manage administrator and franchise accounts.",
       icon: UserList,
     },
     {
       href: "/super-admin/seasons",
-      title: "Auction Seasons",
-      sub: "Control active windows, venues, and season lifecycle.",
+      title: "Season Management",
+      sub: "Create and manage auction events and schedules.",
       icon: Broadcast,
     },
     {
       href: "/super-admin/categories",
-      title: "Player Taxonomy",
-      sub: "Maintain categories and price bands for auction planning.",
+      title: "Player Categories",
+      sub: "Define player roles and base price bands.",
       icon: Stack,
     },
     {
       href: "/super-admin/countries",
-      title: "Geography Registry",
-      sub: "Curate origin data for player and reporting consistency.",
+      title: "Country Registry",
+      sub: "Manage player nationalities and regions.",
       icon: GlobeHemisphereWest,
     },
   ];
 
   return (
     <DashboardLayout allowedRoles={["Super Admin"]}>
-      <PageHeader
-        title="Platform Governance"
-        subtitle="Super admin workspace — access control, taxonomy, season governance, and full operational oversight."
-      />
+      <PageHeader title="Platform Governance" />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Users" value={stats?.total_users ?? "—"} icon={UserList} tone="accent" />
         <StatCard title="Active Users" value={stats?.active_users ?? "—"} icon={ShieldCheck} tone="success" />
-        <StatCard title="Teams" value={stats?.total_teams ?? "—"} icon={UsersThree} />
+        <StatCard title="Teams" value={stats?.total_teams ?? "—"} icon={UsersThree} tone="warning" />
         <StatCard title="Live Auctions" value={stats?.live_auctions ?? "—"} icon={Broadcast} tone="accent" />
       </div>
 
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Players" value={stats?.total_players ?? "—"} icon={Stack} />
-        <StatCard title="Countries" value={stats?.total_countries ?? "—"} icon={GlobeHemisphereWest} />
-        <StatCard title="Categories" value={stats?.total_categories ?? "—"} icon={Stack} />
-        <StatCard title="Seasons" value={stats?.total_seasons ?? "—"} icon={Broadcast} />
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard title="Players" value={stats?.total_players ?? "—"} icon={Stack} tone="default" />
+        <StatCard title="Countries" value={stats?.total_countries ?? "—"} icon={GlobeHemisphereWest} tone="accent" />
+        <StatCard title="Categories" value={stats?.total_categories ?? "—"} icon={Stack} tone="success" />
+        <StatCard title="Seasons" value={stats?.total_seasons ?? "—"} icon={Broadcast} tone="warning" />
       </div>
 
-      <div className="mt-6 grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-        <SectionCard title="Governance Shortcuts" sub="High-impact areas for super admin decisions.">
-          <div className="grid gap-3 sm:grid-cols-2">
+      <div className="mt-8 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <SectionCard title="Quick Actions">
+          <div className="grid gap-4 sm:grid-cols-2">
             {quickLinks.map(({ href, title, sub, icon: Icon }, index) => (
               <motion.div
                 key={href}
@@ -87,32 +84,32 @@ export default function SuperAdminPage() {
               >
                 <Link
                   href={href}
-                  className="group block rounded-xl border border-white/[0.07] bg-white/[0.03] p-5 transition hover:border-amber-400/20 hover:bg-amber-400/[0.04]"
+                  className="group block rounded-xl border border-slate-200 bg-white p-5 transition hover:border-blue-300 hover:shadow-md"
                 >
-                  <div className="mb-4 inline-flex rounded-xl border border-amber-400/20 bg-amber-400/10 p-2.5 text-amber-400 transition group-hover:bg-amber-400/15">
-                    <Icon size={18} weight="duotone" />
+                  <div className="mb-4 inline-flex rounded-xl border border-blue-100 bg-blue-50 p-2.5 text-blue-600 transition group-hover:bg-blue-100 group-hover:scale-105">
+                    <Icon size={20} weight="regular" />
                   </div>
-                  <h3 className="text-[0.9rem] font-bold tracking-[-0.025em] text-white/85 group-hover:text-white transition">{title}</h3>
-                  <p className="mt-1.5 text-xs leading-5 text-white/38">{sub}</p>
+                  <h3 className="text-sm font-bold text-slate-900 group-hover:text-blue-700 transition">{title}</h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">{sub}</p>
                 </Link>
               </motion.div>
             ))}
           </div>
         </SectionCard>
 
-        <SectionCard title="Privilege Model" sub="How super admin access is structured.">
+        <SectionCard title="System Roles & Permissions">
           <div className="grid gap-3">
             {[
-              "All admin operations remain available to super admin users.",
-              "Super admin can additionally govern users, countries, categories, and seasons.",
-              "This keeps operational control centralized without splitting platform ownership.",
+              "Super Administrators have full access to all platform features.",
+              "This includes managing users, settings, and auction configurations.",
+              "Administrators can only manage teams, players, and run the live auction.",
             ].map((item, index) => (
               <div
                 key={index}
-                className="flex items-start gap-3 rounded-xl border border-white/[0.07] bg-white/[0.03] p-4"
+                className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4"
               >
-                <div className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400/60" />
-                <p className="text-sm leading-6 text-white/45">{item}</p>
+                <div className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" />
+                <p className="text-sm leading-6 text-slate-600 font-medium">{item}</p>
               </div>
             ))}
           </div>

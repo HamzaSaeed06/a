@@ -50,9 +50,10 @@ router.get('/dashboard-stats', async (req, res) => {
 router.get('/recent-log', async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT al.*, p.name AS player_name, t.team_name
+      `SELECT al.*, p.name AS player_name, c.country_code, t.team_name
        FROM Auction_Log al
        LEFT JOIN Players p ON al.player_id = p.player_id
+       LEFT JOIN Countries c ON p.country_id = c.country_id
        LEFT JOIN Teams t   ON al.team_id   = t.team_id
        ORDER BY al.log_time DESC LIMIT 20`
     );
@@ -128,7 +129,7 @@ router.delete('/teams/:id', async (req, res) => {
 router.get('/team-squad/:teamId', async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT p.*, ps.final_price, c.country_name, pc.category_name
+      `SELECT p.*, ps.final_price, c.country_name, c.country_code, pc.category_name
        FROM Player_Sale ps
        JOIN Players p ON ps.player_id = p.player_id
        LEFT JOIN Countries c ON p.country_id = c.country_id
@@ -145,7 +146,7 @@ router.get('/team-squad/:teamId', async (req, res) => {
 router.get('/players', async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT p.*, pc.category_name, c.country_name,
+      `SELECT p.*, pc.category_name, c.country_name, c.country_code,
               st.matches, st.runs_scored, st.wickets, st.avg_score, st.strike_rate
        FROM Players p
        LEFT JOIN Player_Category pc ON p.category_id = pc.category_id
@@ -266,10 +267,11 @@ router.get('/bids/:playerId', async (req, res) => {
 router.get('/auction-pool', async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT ap.*, p.name, p.role, p.base_price, pc.category_name
+      `SELECT ap.*, p.name, p.role, p.base_price, pc.category_name, c.country_name, c.country_code
        FROM Auction_Pool ap
        JOIN Players p ON ap.player_id = p.player_id
        LEFT JOIN Player_Category pc ON p.category_id = pc.category_id
+       LEFT JOIN Countries c ON p.country_id = c.country_id
        ORDER BY ap.auction_id DESC, ap.lot_number ASC`
     );
     res.json(rows);
@@ -302,7 +304,7 @@ router.get('/live-status', async (req, res) => {
 
     const [players] = await db.query(
       `SELECT p.*, ap.pool_id, ap.current_bid, ap.highest_bidder_id,
-              pc.category_name, c.country_name
+              pc.category_name, c.country_name, c.country_code
        FROM Auction_Pool ap
        JOIN Players p ON ap.player_id = p.player_id
        LEFT JOIN Player_Category pc ON p.category_id = pc.category_id
@@ -399,9 +401,10 @@ router.post('/reauction/:playerId', async (req, res) => {
 router.get('/auction-log', async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT al.*, p.name AS player_name, t.team_name, a.season
+      `SELECT al.*, p.name AS player_name, c.country_code, t.team_name, a.season
        FROM Auction_Log al
        LEFT JOIN Players p ON al.player_id = p.player_id
+       LEFT JOIN Countries c ON p.country_id = c.country_id
        LEFT JOIN Teams t   ON al.team_id   = t.team_id
        LEFT JOIN Auction a ON al.auction_id = a.auction_id
        ORDER BY al.log_time DESC LIMIT 500`

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PencilSimple, Plus, Stack, Trash } from "@phosphor-icons/react";
+import { Money, PencilSimple, Plus, Stack, Tag, TextAlignLeft, Trash } from "@phosphor-icons/react";
 import DashboardLayout from "../../components/DashboardLayout";
 import {
   ConfirmModal,
@@ -9,19 +9,26 @@ import {
   Field,
   Modal,
   PageHeader,
+  SearchInput,
+  Select,
   SectionCard,
+  TableDropdown,
   Toast,
   useToast,
 } from "../../components/UI";
+import { formatCurrency } from "../../lib/format";
 import { apiFetch } from "../../lib/api";
 
 export default function CategoriesPage() {
   const [items, setItems] = useState([]);
+  const [search, setSearch] = useState("");
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ category_name: "", description: "" });
+  const [form, setForm] = useState({ category_name: "", description: "", base_price: "" });
   const [editItem, setEditItem] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const { toasts, toast, removeToast } = useToast();
+
+  const SUGGESTIONS = ["Platinum", "Diamond", "Gold", "Silver", "Emerging", "Supplementary"];
 
   const fetchItems = () => apiFetch("/super-admin/categories").then(setItems).catch(() => {});
 
@@ -29,15 +36,27 @@ export default function CategoriesPage() {
     fetchItems();
   }, []);
 
+  const filtered = items.filter((item) =>
+    [item.category_name, item.description]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
+
   const openAdd = () => {
     setEditItem(null);
-    setForm({ category_name: "", description: "" });
+    setForm({ category_name: "", description: "", base_price: "" });
     setModal(true);
   };
 
   const openEdit = (item) => {
     setEditItem(item);
-    setForm({ category_name: item.category_name, description: item.description || "" });
+    setForm({ 
+      category_name: item.category_name, 
+      description: item.description || "", 
+      base_price: item.base_price || "" 
+    });
     setModal(true);
   };
 
@@ -76,39 +95,47 @@ export default function CategoriesPage() {
   return (
     <DashboardLayout allowedRoles={["Super Admin"]}>
       <Toast toasts={toasts} removeToast={removeToast} />
-      <PageHeader
-        title="Player Categories"
-        subtitle="Define classification groups used in the player and auction workflow."
-        action={<button className="btn-primary" onClick={openAdd}><Plus size={18} />Add Category</button>}
-      />
+      <PageHeader title="Player Categories" subtitle="Define tiers and draft order" />
+
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <SearchInput
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search by category name..."
+        />
+        <button className="btn-primary shrink-0" onClick={openAdd}>
+          <Plus size={18} />
+          Add Category
+        </button>
+      </div>
 
       <SectionCard padded={false}>
         {items.length ? (
           <div className="table-wrap">
             <table>
               <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Category Name</th>
-                  <th>Description</th>
-                  <th></th>
-                </tr>
+                  <tr>
+                    <th>S.No</th>
+                    <th>Category Name</th>
+                    <th>Base Price</th>
+                    <th>Description</th>
+                    <th className="w-16">Options</th>
+                  </tr>
               </thead>
               <tbody>
-                {items.map((item, index) => (
+                {filtered.map((item, index) => (
                   <tr key={item.category_id}>
                     <td>{index + 1}</td>
                     <td className="font-semibold text-slate-950">{item.category_name}</td>
-                    <td>{item.description || "—"}</td>
+                    <td className="font-bold text-slate-900">{formatCurrency(item.base_price)}</td>
+                    <td className="text-slate-500">{item.description || "—"}</td>
                     <td>
-                      <div className="flex justify-end gap-2">
-                        <button className="btn-ghost !p-2" onClick={() => openEdit(item)}>
-                          <PencilSimple size={16} />
-                        </button>
-                        <button className="btn-ghost !p-2 !text-[var(--danger)]" onClick={() => setConfirm(item.category_id)}>
-                          <Trash size={16} />
-                        </button>
-                      </div>
+                      <TableDropdown
+                        options={[
+                          { label: "Edit", icon: PencilSimple, onClick: () => openEdit(item) },
+                          { label: "Delete", icon: Trash, danger: true, onClick: () => setConfirm(item.category_id) }
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -125,12 +152,38 @@ export default function CategoriesPage() {
       </SectionCard>
 
       <Modal open={modal} onClose={() => setModal(false)} title={editItem ? "Edit Category" : "Add Category"} width={420}>
-        <div className="grid gap-4">
-          <Field label="Category Name">
-            <input className="input" value={form.category_name} onChange={(event) => setForm((current) => ({ ...current, category_name: event.target.value }))} />
+        <div className="grid gap-6">
+          <Field label="Category Name" icon={Tag}>
+            <Select 
+              value={form.category_name}
+              onChange={(val) => setForm(c => ({ ...c, category_name: val }))}
+              options={[
+                ...SUGGESTIONS.map(s => ({ label: s, value: s })),
+                { label: "Custom...", value: "Custom" }
+              ]}
+              placeholder="Select a category"
+            />
           </Field>
-          <Field label="Description">
-            <input className="input" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
+          {form.category_name === "Custom" && (
+            <Field label="Custom Category Name" icon={Tag}>
+              <input 
+                className="input" 
+                placeholder="Enter custom category name" 
+                onChange={(event) => setForm((current) => ({ ...current, category_name: event.target.value }))} 
+              />
+            </Field>
+          )}
+          <Field label="Description" icon={TextAlignLeft}>
+            <input className="input" placeholder="Short description of the category" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
+          </Field>
+          <Field label="Default Base Price" icon={Money}>
+            <input 
+              className="input" 
+              type="number" 
+              placeholder="e.g. 2000000" 
+              value={form.base_price} 
+              onChange={(event) => setForm((current) => ({ ...current, base_price: event.target.value }))} 
+            />
           </Field>
         </div>
 

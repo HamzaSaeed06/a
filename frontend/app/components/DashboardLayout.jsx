@@ -32,7 +32,7 @@ export default function DashboardLayout({ children, allowedRoles }) {
 
   if (loading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <Spinner size={32} />
       </div>
     );
@@ -43,16 +43,16 @@ export default function DashboardLayout({ children, allowedRoles }) {
   }
 
   return (
-    <div className="app-shell lg:flex">
+    <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
       <motion.main
         key={pathname}
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.22 }}
-        className="min-h-screen flex-1 p-4 lg:pl-0"
+        transition={{ duration: 0.2 }}
+        className="flex-1 ml-0 lg:ml-64"
       >
-        <div className="min-h-[calc(100vh-2rem)] rounded-2xl border border-white/[0.07] bg-[rgba(255,255,255,0.025)] p-5 md:p-6 lg:p-7 backdrop-blur-sm">
+        <div className="p-4 lg:p-8 max-w-7xl mx-auto w-full">
           {children}
         </div>
       </motion.main>

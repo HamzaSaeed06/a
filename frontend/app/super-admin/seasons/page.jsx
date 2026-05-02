@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarDots, PencilSimple, Plus, Trash } from "@phosphor-icons/react";
+import { Calendar, CalendarDots, Clock, MapPin, PencilSimple, Plus, Selection, Trash, Trophy } from "@phosphor-icons/react";
 import DashboardLayout from "../../components/DashboardLayout";
 import {
   ConfirmModal,
@@ -10,7 +10,9 @@ import {
   Modal,
   PageHeader,
   SearchInput,
+  Select,
   SectionCard,
+  TableDropdown,
   Toast,
   useToast,
 } from "../../components/UI";
@@ -100,17 +102,19 @@ export default function SeasonsPage() {
   return (
     <DashboardLayout allowedRoles={["Super Admin"]}>
       <Toast toasts={toasts} removeToast={removeToast} />
-      <PageHeader
-        title="Auction Seasons"
-        subtitle="Define the formal auction calendar, venue context, and lifecycle status."
-        action={<button className="btn-primary" onClick={openAdd}><Plus size={18} />Create Season</button>}
-      />
+      <PageHeader title="Auction Seasons" subtitle="Manage seasonal auction events" />
 
-      <SearchInput
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-        placeholder="Search seasons, venues, or status"
-      />
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <SearchInput
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search seasons, venues, or status"
+        />
+        <button className="btn-primary shrink-0" onClick={openAdd}>
+          <Plus size={18} />
+          Create Season
+        </button>
+      </div>
 
       <div className="mt-6">
         <SectionCard padded={false}>
@@ -118,18 +122,20 @@ export default function SeasonsPage() {
             <div className="table-wrap">
               <table>
                 <thead>
-                  <tr>
-                    <th>Auction</th>
-                    <th>Season</th>
-                    <th>Date</th>
-                    <th>Location</th>
-                    <th>Status</th>
-                    <th></th>
-                  </tr>
+                    <tr>
+                      <th>S.No</th>
+                      <th>Auction</th>
+                      <th>Season</th>
+                      <th>Date</th>
+                      <th>Location</th>
+                      <th>Status</th>
+                      <th className="w-16">Options</th>
+                    </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((item) => (
+                  {filtered.map((item, index) => (
                     <tr key={item.auction_id}>
+                      <td>{index + 1}</td>
                       <td className="font-semibold text-slate-950">{item.auction_name}</td>
                       <td>{item.season}</td>
                       <td>{formatDate(item.auction_date)}</td>
@@ -140,14 +146,12 @@ export default function SeasonsPage() {
                         </span>
                       </td>
                       <td>
-                        <div className="flex justify-end gap-2">
-                          <button className="btn-ghost !p-2" onClick={() => openEdit(item)}>
-                            <PencilSimple size={16} />
-                          </button>
-                          <button className="btn-ghost !p-2 !text-[var(--danger)]" onClick={() => setConfirm(item.auction_id)}>
-                            <Trash size={16} />
-                          </button>
-                        </div>
+                        <TableDropdown
+                          options={[
+                            { label: "Edit", icon: PencilSimple, onClick: () => openEdit(item) },
+                            { label: "Delete", icon: Trash, danger: true, onClick: () => setConfirm(item.auction_id) }
+                          ]}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -166,21 +170,23 @@ export default function SeasonsPage() {
 
       <Modal open={modal} onClose={() => setModal(false)} title={editItem ? "Edit Auction Season" : "Create Auction Season"}>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Auction Name">
+          <Field label="Auction Name" icon={Trophy}>
             <input
               className="input"
+              placeholder="e.g. PSL Season 8 Auction"
               value={form.auction_name}
               onChange={(event) => setForm((current) => ({ ...current, auction_name: event.target.value }))}
             />
           </Field>
-          <Field label="Season">
+          <Field label="Season" icon={Calendar}>
             <input
               className="input"
+              placeholder="e.g. 2024"
               value={form.season}
               onChange={(event) => setForm((current) => ({ ...current, season: event.target.value }))}
             />
           </Field>
-          <Field label="Auction Date">
+          <Field label="Auction Date" icon={CalendarDots}>
             <input
               className="input"
               type="date"
@@ -188,24 +194,25 @@ export default function SeasonsPage() {
               onChange={(event) => setForm((current) => ({ ...current, auction_date: event.target.value }))}
             />
           </Field>
-          <Field label="Location">
+          <Field label="Location" icon={MapPin}>
             <input
               className="input"
+              placeholder="e.g. PC Hotel, Karachi"
               value={form.location}
               onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))}
             />
           </Field>
           <div className="md:col-span-2">
-            <Field label="Status">
-              <select
-                className="select"
+            <Field label="Status" icon={Clock}>
+              <Select
                 value={form.status}
-                onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}
-              >
-                <option value="upcoming">Upcoming</option>
-                <option value="live">Live</option>
-                <option value="completed">Completed</option>
-              </select>
+                onChange={(val) => setForm((current) => ({ ...current, status: val }))}
+                options={[
+                  { label: "Upcoming", value: "upcoming" },
+                  { label: "Live", value: "live" },
+                  { label: "Completed", value: "completed" },
+                ]}
+              />
             </Field>
           </div>
         </div>

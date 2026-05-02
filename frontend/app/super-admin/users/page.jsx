@@ -2,11 +2,15 @@
 
 import { useEffect, useState } from "react";
 import {
+  EnvelopeSimple,
+  Key,
   PencilSimple,
   Plus,
   ShieldCheck,
   ShieldSlash,
   Trash,
+  User,
+  UserCircleGear,
   UserList,
 } from "@phosphor-icons/react";
 import DashboardLayout from "../../components/DashboardLayout";
@@ -18,6 +22,7 @@ import {
   PageHeader,
   SearchInput,
   SectionCard,
+  Pagination,
   Toast,
   useToast,
 } from "../../components/UI";
@@ -40,7 +45,10 @@ export default function UsersPage() {
   const [form, setForm] = useState(emptyForm);
   const [editUser, setEditUser] = useState(null);
   const [confirm, setConfirm] = useState(null);
+  const [page, setPage] = useState(1);
   const { toasts, toast, removeToast } = useToast();
+  
+  const PAGE_SIZE = 10;
 
   const fetchUsers = () => apiFetch("/super-admin/users").then(setUsers).catch(() => {});
 
@@ -55,6 +63,13 @@ export default function UsersPage() {
       .toLowerCase()
       .includes(search.toLowerCase()),
   );
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   const openAdd = () => {
     setEditUser(null);
@@ -129,17 +144,14 @@ export default function UsersPage() {
   return (
     <DashboardLayout allowedRoles={["Super Admin"]}>
       <Toast toasts={toasts} removeToast={removeToast} />
-      <PageHeader
-        title="Users and Roles"
-        subtitle="Govern access, suspend accounts, and control role ownership across the platform."
-        action={<button className="btn-primary" onClick={openAdd}><Plus size={18} />Add User</button>}
-      />
-
-      <SearchInput
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-        placeholder="Search by username, email, or role"
-      />
+      <PageHeader title="Users and Roles" subtitle="View and search system accounts" />
+      <div className="mb-6">
+        <SearchInput
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search by username, email, or role"
+        />
+      </div>
 
       <div className="mt-6">
         <SectionCard padded={false}>
@@ -148,17 +160,18 @@ export default function UsersPage() {
               <table>
                 <thead>
                   <tr>
+                    <th>S.No</th>
                     <th>Username</th>
                     <th>Email</th>
                     <th>Role</th>
                     <th>Status</th>
                     <th>Created</th>
-                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((user) => (
+                  {paginated.map((user, index) => (
                     <tr key={user.user_id}>
+                      <td>{(page - 1) * PAGE_SIZE + index + 1}</td>
                       <td className="font-semibold text-slate-950">{user.username}</td>
                       <td>{user.email}</td>
                       <td>
@@ -172,23 +185,11 @@ export default function UsersPage() {
                         </span>
                       </td>
                       <td>{formatDate(user.created_at)}</td>
-                      <td>
-                        <div className="flex justify-end gap-2">
-                          <button className="btn-ghost !p-2" onClick={() => toggleActive(user)}>
-                            {user.is_active ? <ShieldSlash size={16} /> : <ShieldCheck size={16} />}
-                          </button>
-                          <button className="btn-ghost !p-2" onClick={() => openEdit(user)}>
-                            <PencilSimple size={16} />
-                          </button>
-                          <button className="btn-ghost !p-2 !text-[var(--danger)]" onClick={() => setConfirm(user.user_id)}>
-                            <Trash size={16} />
-                          </button>
-                        </div>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              <Pagination current={page} total={totalPages} onPageChange={setPage} />
             </div>
           ) : (
             <EmptyState
@@ -200,70 +201,6 @@ export default function UsersPage() {
         </SectionCard>
       </div>
 
-      <Modal open={modal} onClose={() => setModal(false)} title={editUser ? "Edit User" : "Create User"}>
-        <div className="grid gap-4 md:grid-cols-2">
-          {!editUser ? (
-            <>
-              <Field label="Username">
-                <input
-                  className="input"
-                  value={form.username}
-                  onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))}
-                />
-              </Field>
-              <Field label="Email">
-                <input
-                  className="input"
-                  type="email"
-                  value={form.email}
-                  onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-                />
-              </Field>
-            </>
-          ) : null}
-
-          <Field label="Role">
-            <select
-              className="select"
-              value={form.role}
-              onChange={(event) => setForm((current) => ({ ...current, role: event.target.value }))}
-            >
-              {ROLES.map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field label={editUser ? "New Password" : "Password"}>
-            <input
-              className="input"
-              type="password"
-              value={form.password}
-              onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-            />
-          </Field>
-        </div>
-
-        <div className="mt-6 flex justify-end gap-3">
-          <button className="btn-outline" onClick={() => setModal(false)}>
-            Cancel
-          </button>
-          <button className="btn-primary" onClick={save}>
-            Save User
-          </button>
-        </div>
-      </Modal>
-
-      <ConfirmModal
-        open={!!confirm}
-        onClose={() => setConfirm(null)}
-        onConfirm={() => remove(confirm)}
-        title="Delete User"
-        message="This permanently removes the account from the system."
-        danger
-      />
     </DashboardLayout>
   );
 }
