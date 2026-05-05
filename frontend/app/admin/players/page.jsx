@@ -1,6 +1,56 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Cropper from "react-easy-crop";
+import { getCroppedImg } from "../../lib/image";
+
+function ImageCropModal({ open, image, onCropComplete, onClose, aspect = 1, shape = "round" }) {
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+
+  if (!image) return null;
+
+  return (
+    <Modal open={open} onClose={onClose} title="Adjust Photo" width={500}>
+      <div className="relative h-80 w-full bg-slate-900 overflow-hidden rounded-lg">
+        <Cropper
+          image={image}
+          crop={crop}
+          zoom={zoom}
+          aspect={aspect}
+          onCropChange={setCrop}
+          onZoomChange={setZoom}
+          onCropComplete={(_, pixels) => setCroppedAreaPixels(pixels)}
+          cropShape={shape}
+          showGrid={false}
+        />
+      </div>
+      <div className="mt-6 flex flex-col gap-4">
+        <div className="flex items-center gap-4">
+           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest min-w-[40px]">Zoom</span>
+           <input 
+             type="range" 
+             min={1} 
+             max={3} 
+             step={0.1} 
+             value={zoom} 
+             onChange={(e) => setZoom(Number(e.target.value))}
+             className="flex-1 accent-slate-900 h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer"
+           />
+        </div>
+        <div className="flex justify-end gap-3 mt-2">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={async () => {
+            const blob = await getCroppedImg(image, croppedAreaPixels);
+            onCropComplete(blob);
+            onClose();
+          }}>Save Adjustment</Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
 import {
   Calendar,
   Eye,
@@ -22,6 +72,7 @@ import {
   Clock,
   CaretRight
 } from "@phosphor-icons/react";
+import { motion, AnimatePresence } from "framer-motion";
 import DashboardLayout from "../../components/DashboardLayout";
 import PlayerStatsOverlay from "../../components/PlayerStatsOverlay";
 import {
@@ -35,9 +86,22 @@ import {
   SectionCard,
   Pagination,
   TableDropdown,
-  Toast,
   ViewToggle,
+  Toast,
   useToast,
+  Button,
+  Input,
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+  Badge,
+  RoleBadge,
+  Drawer,
+  MiniChart,
+  LineChart,
 } from "../../components/UI";
 import { apiFetch } from "../../lib/api";
 import { formatCurrency, cn } from "../../lib/format";
@@ -46,16 +110,37 @@ import { countriesData } from "../../lib/countries";
 const BATTING = ["Right-hand bat", "Left-hand bat"];
 const BOWLING = [
   "Right-arm fast",
+  "Right-arm fast-medium",
+  "Right-arm medium-fast",
   "Right-arm medium",
-  "Right-arm off break",
+  "Right-arm slow-medium",
+  "Right-arm off-break",
+  "Right-arm leg-break",
+  "Right-arm off-spin",
+  "Right-arm leg-spin",
   "Left-arm fast",
+  "Left-arm fast-medium",
+  "Left-arm medium-fast",
   "Left-arm medium",
+  "Left-arm slow-medium",
   "Left-arm orthodox",
-  "Left-arm wrist spin",
-  "Leg-break",
+  "Left-arm wrist-spin",
+  "Left-arm chinaman",
+  "Slow left-arm orthodox",
   "N/A",
 ];
-const ROLES = ["Batsman", "Bowler", "All-rounder", "Wicket-keeper"];
+const ROLES = [
+  "Batsman",
+  "Opening Batsman",
+  "Top-order Batsman",
+  "Middle-order Batsman",
+  "Wicket-keeper",
+  "Wicket-keeper Batsman",
+  "All-rounder",
+  "Batting All-rounder",
+  "Bowling All-rounder",
+  "Bowler",
+];
 
 const emptyForm = {
   name: "",
@@ -68,28 +153,126 @@ const emptyForm = {
   country_id: "",
 };
 
+function DirectAssignModal({ open, player, teams, auctions, onComplete, onClose }) {
+  const [form, setForm] = useState({ team_id: "", price: player?.base_price || 0 });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (player) setForm({ team_id: "", price: player.base_price });
+  }, [player]);
+
+  const handleAssign = async () => {
+    if (!form.team_id) return alert("Select a team.");
+    const auction = auctions?.[0];
+    if (!auction) return alert("No active auction season found.");
+    
+    setSaving(true);
+    try {
+      const { apiFetch } = await import("../../lib/api");
+      await apiFetch(`/admin/players/${player.player_id}/direct-assign`, {
+        method: "POST",
+        body: JSON.stringify({
+          team_id: form.team_id,
+          price: form.price,
+          auction_id: auction.auction_id,
+          season: auction.season
+        })
+      });
+      onComplete();
+      onClose();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title={`Directly Sign ${player?.name}`} width={400}>
+       <div className="space-y-4">
+         <Field label="Target Team" icon={Shield}>
+           <Select 
+             value={form.team_id}
+             onChange={(val) => setForm(f => ({...f, team_id: val}))}
+             options={teams.map(t => ({ label: t.team_name, value: t.team_id }))}
+             placeholder="Select team"
+           />
+         </Field>
+         <Field label="Signing Price" icon={Money}>
+           <Input 
+             type="number"
+             value={form.price}
+             onChange={(e) => setForm(f => ({...f, price: e.target.value}))}
+           />
+         </Field>
+         <div className="flex justify-end gap-3 mt-6">
+           <Button variant="outline" onClick={onClose}>Cancel</Button>
+           <Button variant="primary" loading={saving} onClick={handleAssign}>Assign to Squad</Button>
+         </div>
+       </div>
+    </Modal>
+  );
+}
+
 export default function PlayersPage() {
   const [players, setPlayers] = useState([]);
   const [categories, setCategories] = useState([]);
   const [countries, setCountries] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [auctions, setAuctions] = useState([]);
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState(false);
+  const [assignModal, setAssignModal] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [editPlayer, setEditPlayer] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [imageFile, setImageFile] = useState(null);
+  const [actionImageFile, setActionImageFile] = useState(null);
   const [videoFile, setVideoFile] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [preview, setPreview] = useState(null);
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState("table");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerSearch, setDrawerSearch] = useState("");
+  const [saving, setSaving] = useState(false);
   const { toasts, toast, removeToast } = useToast();
+  
+  const [cropModal, setCropModal] = useState({ open: false, image: null, type: null });
   
   const PAGE_SIZE = 7;
 
+  const handleFileSelect = (e, type) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropModal({ open: true, image: reader.result, type });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const fetchAll = () => {
-    apiFetch("/admin/players").then(setPlayers).catch(() => {});
-    apiFetch("/super-admin/categories").then(setCategories).catch(() => {});
-    apiFetch("/super-admin/countries").then(setCountries).catch(() => {});
+    apiFetch("/admin/players")
+      .then(setPlayers)
+      .catch((err) => toast("Failed to load players: " + err.message, "error"));
+    
+    apiFetch("/super-admin/categories")
+      .then(setCategories)
+      .catch((err) => toast("Failed to load categories: " + err.message, "error"));
+    
+    apiFetch("/super-admin/countries")
+      .then(setCountries)
+      .catch((err) => toast("Failed to load countries: " + err.message, "error"));
+
+    apiFetch("/admin/teams")
+      .then(setTeams)
+      .catch(() => {});
+      
+    apiFetch("/super-admin/auctions")
+      .then(setAuctions)
+      .catch(() => {});
   };
 
   useEffect(() => {
@@ -119,6 +302,7 @@ export default function PlayersPage() {
       country_id: countries[0]?.country_id || "",
     });
     setImageFile(null);
+    setActionImageFile(null);
     setVideoFile(null);
     setModal(true);
   };
@@ -136,39 +320,45 @@ export default function PlayersPage() {
       country_id: player.country_id || "",
     });
     setImageFile(null);
+    setActionImageFile(null);
     setVideoFile(null);
     setModal(true);
   };
 
   const save = async () => {
+    if (!form.name) return toast("Player name is required.", "error");
+    setSaving(true);
     try {
       const payload = new FormData();
       Object.entries(form).forEach(([key, value]) => payload.append(key, value));
-      if (imageFile) payload.append("image", imageFile);
+      if (imageFile) payload.append("image", imageFile, "profile.jpg");
+      if (actionImageFile) payload.append("action_image", actionImageFile, "action.jpg");
       if (videoFile) payload.append("video", videoFile);
 
       if (editPlayer) {
         await apiFetch(`/admin/players/${editPlayer.player_id}`, { method: "PUT", body: payload });
-        toast("Player updated.", "success");
+        toast("Player profile updated successfully.", "success");
       } else {
         await apiFetch("/admin/players", { method: "POST", body: payload });
-        toast("Player created.", "success");
+        toast("New player added successfully to the registry.", "success");
       }
 
       setModal(false);
       fetchAll();
     } catch (error) {
-      toast(error.message, "error");
+      toast(error.message || "An error occurred while saving the player profile.", "error");
+    } finally {
+      setSaving(false);
     }
   };
 
   const remove = async (id) => {
     try {
       await apiFetch(`/admin/players/${id}`, { method: "DELETE" });
-      toast("Player deleted.", "success");
+      toast("Player profile removed successfully.", "success");
       fetchAll();
     } catch (error) {
-      toast(error.message, "error");
+      toast(error.message || "Failed to remove the player profile.", "error");
     }
   };
 
@@ -186,39 +376,55 @@ export default function PlayersPage() {
         />
         <div className="flex items-center gap-3">
           <ViewToggle mode={viewMode} onChange={setViewMode} />
-          <button className="btn-primary shrink-0" onClick={openAdd}>
+          <Button variant="primary" className="shrink-0" onClick={openAdd}>
             <Plus size={18} />
             Add Player
-          </button>
+          </Button>
         </div>
       </div>
 
       <div className="mt-6">
-        <SectionCard padded={false}>
+        <SectionCard padded={false} fullHeight={true}>
           {filtered.length ? (
-            <div className="overflow-auto h-[calc(100vh-200px)] relative border-t border-slate-100 no-scrollbar">
+            <>
               {viewMode === "table" ? (
-                <table className="w-full border-collapse">
-                  <thead className="sticky top-0 z-10 bg-white border-b border-slate-200">
-                    <tr>
-                      <th>S.No</th>
-                      <th>Player</th>
-                      <th>Role</th>
-                      <th>Country</th>
-                      <th>Category</th>
-                      <th>Base Price</th>
-                      <th>Status</th>
-                      <th className="w-16">Options</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>S.No</TableHead>
+                      <TableHead>Player</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Country</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Base Price</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-16">Options</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {paginated.map((player, index) => (
-                      <tr key={player.player_id} className="border-b border-slate-200 hover:bg-slate-50/50 transition-colors">
-                        <td>{(page - 1) * PAGE_SIZE + index + 1}</td>
-                        <td className="font-semibold text-slate-950">{player.name}</td>
-                        <td>{player.role || "-"}</td>
-                        <td className="text-slate-500">
-                          <div className="flex items-center gap-2">
+                      <TableRow 
+                        key={player.player_id}
+                        className="hover:bg-slate-50/80"
+                      >
+                        <TableCell>{(page - 1) * PAGE_SIZE + index + 1}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                             <div className={cn("h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold border border-slate-100 shadow-sm overflow-hidden", !player.image_url && "bg-slate-900 text-white")}>
+                                {player.image_url ? (
+                                  <img src={player.image_url} alt="" className="w-full h-full object-contain" />
+                                ) : (
+                                  player.name?.substring(0, 2).toUpperCase()
+                                )}
+                             </div>
+                             <div className="text-ui-semibold text-slate-950">{player.name}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <RoleBadge role={player.role} />
+                        </TableCell>
+                        <TableCell className="text-slate-500">
+                          <div className="flex items-center gap-1">
                             {player.country_code && (
                               <img
                                 src={`https://flagcdn.com/w40/${player.country_code.toLowerCase()}.png`}
@@ -226,68 +432,75 @@ export default function PlayersPage() {
                                 className="country-flag"
                               />
                             )}
-                            {player.country_name || "-"}
+                            <span className="text-ui truncate">{player.country_name || "-"}</span>
                           </div>
-                        </td>
-                        <td className="text-slate-500 uppercase">{player.category_name || "-"}</td>
-                        <td className="font-bold text-slate-900">{formatCurrency(player.base_price)}</td>
-                        <td>
-                          <span className={`badge ${player.status === "sold" ? "badge-success" : player.status === "unsold" ? "badge-neutral" : "badge-accent"}`}>
+                        </TableCell>
+                        <TableCell className="text-slate-500 capitalize">{player.category_name || "-"}</TableCell>
+                        <TableCell className="font-bold text-slate-900">{formatCurrency(player.base_price)}</TableCell>
+                        <TableCell>
+                          <Badge variant={player.status === "sold" ? "success" : player.status === "unsold" ? "neutral" : "gold"}>
                             {player.status}
-                          </span>
-                        </td>
-                        <td>
+                          </Badge>
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <TableDropdown
                             options={[
                               { label: "Edit", icon: PencilSimple, onClick: () => openEdit(player) },
+                              ...(player.status === "unsold" ? [{ label: "Direct Sign", icon: CheckCircle, onClick: () => { setSelectedPlayer(player); setAssignModal(true); } }] : []),
                               { label: "Delete", icon: Trash, danger: true, onClick: () => setConfirm(player.player_id) }
                             ]}
                           />
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               ) : (
-                <div className="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-8 bg-slate-50/50">
+                <div className="overflow-auto relative border-t border-slate-100 no-scrollbar">
+                  <div className="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-8 bg-slate-50/50">
                   {paginated.map((player) => (
-                    <div key={player.player_id} className="surface group hover:border-slate-900 transition-all duration-300">
+                    <div 
+                      key={player.player_id} 
+                      className="surface group hover:border-slate-900 transition-all duration-300"
+                    >
                        <div className="p-4">
                         <div className="flex items-start justify-between mb-5">
                           <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 shrink-0 rounded-full bg-slate-950 text-white flex items-center justify-center overflow-hidden">
-                               {player.image ? (
-                                 <img src={player.image} alt="" className="w-full h-full object-cover" />
+                            <div className={cn("h-12 w-12 shrink-0 rounded-full flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm", !player.image_url && "bg-slate-950 text-white")}>
+                               {player.image_url ? (
+                                 <img src={player.image_url} alt="" className="w-full h-full object-contain" />
                                ) : (
                                  <span className="text-sm font-bold">{player.name?.substring(0, 2).toUpperCase()}</span>
                                )}
                             </div>
                             <div className="min-w-0">
-                              <h3 className="text-sm font-semibold text-slate-950 truncate leading-none mb-1">{player.name}</h3>
+                              <h3 className="text-ui-semibold text-slate-950 truncate leading-none mb-1">{player.name}</h3>
                               <div className="flex items-center gap-1.5">
                                  {player.country_code && (
                                    <img src={`https://flagcdn.com/w20/${player.country_code.toLowerCase()}.png`} alt="" className="h-2.5 w-4 object-contain rounded-[1px]" />
                                  )}
-                                 <p className="text-[10px] font-medium text-slate-400 capitalize">{player.role || "Player"}</p>
+                                 <RoleBadge role={player.role} />
                               </div>
                             </div>
                           </div>
-                          <TableDropdown
-                            options={[
-                              { label: "Edit", icon: PencilSimple, onClick: () => openEdit(player) },
-                              { label: "Delete", icon: Trash, danger: true, onClick: () => setConfirm(player.player_id) }
-                            ]}
-                          />
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <TableDropdown
+                              options={[
+                                { label: "Edit", icon: PencilSimple, onClick: () => openEdit(player) },
+                                { label: "Delete", icon: Trash, danger: true, onClick: () => setConfirm(player.player_id) }
+                              ]}
+                            />
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 py-4 border-y border-slate-50">
                            <div className="flex flex-col gap-1">
-                              <span className="text-[10px] font-medium text-slate-400 capitalize tracking-tight">Base Price</span>
-                              <span className="text-sm font-semibold text-slate-900">{formatCurrency(player.base_price)}</span>
+                              <span className="text-ui-xs font-medium text-slate-400 capitalize tracking-tight">Base Price</span>
+                              <span className="text-ui-semibold text-slate-900">{formatCurrency(player.base_price)}</span>
                            </div>
                            <div className="flex flex-col gap-1">
-                              <span className="text-[10px] font-medium text-slate-400 capitalize tracking-tight">Category</span>
-                              <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">{player.category_name || "N/A"}</span>
+                              <span className="text-ui-xs font-medium text-slate-400 capitalize tracking-tight">Category</span>
+                              <span className="text-ui-xs font-bold text-slate-600 capitalize tracking-wider">{player.category_name || "N/A"}</span>
                            </div>
                         </div>
 
@@ -298,15 +511,16 @@ export default function PlayersPage() {
                                 player.status === "withdrawn" ? "bg-red-500" : 
                                 "bg-slate-300"
                               )} />
-                              <span className="text-[10px] font-semibold text-slate-600 capitalize">{player.status || "unsold"}</span>
+                              <span className="text-ui-xs font-semibold text-slate-600 capitalize">{player.status || "unsold"}</span>
                            </div>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+          </>
           ) : (
             <EmptyState
               icon={IdentificationBadge}
@@ -323,10 +537,10 @@ export default function PlayersPage() {
       <Modal open={modal} onClose={() => setModal(false)} title={editPlayer ? "Edit Player" : "Create Player"}>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Full Name" icon={Person}>
-            <input className="input" placeholder="e.g. Babar Azam" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
+            <Input placeholder="e.g. Babar Azam" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
           </Field>
           <Field label="Age" icon={Calendar}>
-            <input className="input" type="number" placeholder="e.g. 28" value={form.age} onChange={(event) => setForm((current) => ({ ...current, age: event.target.value }))} />
+            <Input type="number" placeholder="e.g. 28" value={form.age} onChange={(event) => setForm((current) => ({ ...current, age: event.target.value }))} />
           </Field>
           <Field label="Role" icon={UserCircleGear}>
             <Select
@@ -336,7 +550,7 @@ export default function PlayersPage() {
             />
           </Field>
           <Field label="Base Price" icon={Money}>
-            <input className="input" type="number" placeholder="e.g. 500000" value={form.base_price} onChange={(event) => setForm((current) => ({ ...current, base_price: event.target.value }))} />
+            <Input type="number" placeholder="e.g. 500000" value={form.base_price} onChange={(event) => setForm((current) => ({ ...current, base_price: event.target.value }))} />
           </Field>
           <Field label="Batting Style" icon={Star}>
             <Select
@@ -375,21 +589,29 @@ export default function PlayersPage() {
               placeholder="Select country"
             />
           </Field>
-          <Field label="Player Photo" icon={ImageIcon}>
-            <input className="input !py-1.5" type="file" accept="image/*" onChange={(event) => setImageFile(event.target.files?.[0] || null)} />
+          <Field label="Profile Photo" icon={ImageIcon}>
+            <Input className="!py-1.5" type="file" accept="image/*" onChange={(e) => handleFileSelect(e, "image")} />
+          </Field>
+          <Field label="Action Photo" icon={ImageIcon}>
+            <Input className="!py-1.5" type="file" accept="image/*" onChange={(e) => handleFileSelect(e, "action_image")} />
           </Field>
           <Field label="Player Video" icon={Video}>
-            <input className="input !py-1.5" type="file" accept="video/*" onChange={(event) => setVideoFile(event.target.files?.[0] || null)} />
+            <Input className="!py-1.5" type="file" accept="video/*" onChange={(event) => setVideoFile(event.target.files?.[0] || null)} />
           </Field>
         </div>
 
         <div className="mt-6 flex justify-end gap-3">
-          <button className="btn-outline" onClick={() => setModal(false)}>
+          <Button variant="outline" onClick={() => setModal(false)}>
             Cancel
-          </button>
-          <button className="btn-primary" onClick={save}>
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={save}
+            loading={saving}
+            loadingText="Saving Details..."
+          >
             Save Player
-          </button>
+          </Button>
         </div>
       </Modal>
 
@@ -401,6 +623,31 @@ export default function PlayersPage() {
         message="This permanently removes the player and linked stat history."
         danger
       />
+
+      <ImageCropModal 
+        open={cropModal.open}
+        image={cropModal.image}
+        aspect={cropModal.type === "image" ? 1 : 16/10}
+        shape={cropModal.type === "image" ? "round" : "rect"}
+        onClose={() => setCropModal({ open: false, image: null, type: null })}
+        onCropComplete={(blob) => {
+          if (cropModal.type === "image") setImageFile(blob);
+          else setActionImageFile(blob);
+        }}
+      />
+
+      <DirectAssignModal
+        open={assignModal}
+        player={selectedPlayer}
+        teams={teams}
+        auctions={auctions}
+        onClose={() => setAssignModal(false)}
+        onComplete={() => {
+          toast("Player assigned to squad successfully.", "success");
+          fetchAll();
+        }}
+      />
+
     </DashboardLayout>
   );
 }

@@ -61,11 +61,11 @@ export default function PlayerStatsOverlay({ player, visible, onClose, bidAmount
 
                 <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
                   <div className="h-28 w-28 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
-                    {player.image_url ? (
+                    {player.action_image_url || player.image_url ? (
                       <img
-                        src={player.image_url.startsWith("/") ? player.image_url : `/uploads/${player.image_url}`}
+                        src={(player.action_image_url || player.image_url).startsWith("/") ? (player.action_image_url || player.image_url) : `/uploads/${player.action_image_url || player.image_url}`}
                         alt={player.name}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-contain"
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-slate-300">
@@ -90,7 +90,7 @@ export default function PlayerStatsOverlay({ player, visible, onClose, bidAmount
                 </div>
 
                 <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+                  <div className="rounded-xl bg-slate-50 p-5 shadow-sm">
                     <div className="mb-2 text-[0.65rem] font-bold text-slate-500 flex items-center gap-1.5">
                       <Cricket size={14} />
                       Base Price

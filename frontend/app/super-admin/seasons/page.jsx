@@ -13,8 +13,18 @@ import {
   Select,
   SectionCard,
   TableDropdown,
+  Pagination,
   Toast,
   useToast,
+  Button,
+  Input,
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+  Badge,
 } from "../../components/UI";
 import { apiFetch } from "../../lib/api";
 import { formatDate } from "../../lib/format";
@@ -34,13 +44,26 @@ export default function SeasonsPage() {
   const [form, setForm] = useState(defaultForm);
   const [editItem, setEditItem] = useState(null);
   const [confirm, setConfirm] = useState(null);
+  const [page, setPage] = useState(1);
   const { toasts, toast, removeToast } = useToast();
 
-  const fetchItems = () => apiFetch("/super-admin/auctions").then(setItems).catch(() => {});
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const PAGE_SIZE = 6;
+
+  const fetchItems = () => 
+    apiFetch("/super-admin/auctions")
+      .then(setItems)
+      .catch((err) => toast("Failed to fetch auction seasons: " + err.message, "error"));
 
   useEffect(() => {
     fetchItems();
   }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   const filtered = items.filter((item) =>
     [item.auction_name, item.season, item.location, item.status]
@@ -49,6 +72,9 @@ export default function SeasonsPage() {
       .toLowerCase()
       .includes(search.toLowerCase()),
   );
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const openAdd = () => {
     setEditItem(null);
@@ -69,33 +95,42 @@ export default function SeasonsPage() {
   };
 
   const save = async () => {
+    if (!form.auction_name) return toast("Auction name is required.", "error");
+    setSaving(true);
     try {
       if (editItem) {
         await apiFetch(`/super-admin/auctions/${editItem.auction_id}`, {
           method: "PUT",
           body: JSON.stringify(form),
         });
+        toast("Auction season has been successfully updated.", "success");
       } else {
         await apiFetch("/super-admin/auctions", {
           method: "POST",
           body: JSON.stringify(form),
         });
+        toast("A new auction season has been successfully created.", "success");
       }
-      toast(editItem ? "Auction season updated." : "Auction season created.", "success");
       setModal(false);
       fetchItems();
     } catch (error) {
-      toast(error.message, "error");
+      toast("Error saving auction season: " + error.message, "error");
+    } finally {
+      setSaving(false);
     }
   };
 
   const remove = async (id) => {
+    setDeleting(true);
     try {
       await apiFetch(`/super-admin/auctions/${id}`, { method: "DELETE" });
-      toast("Auction season deleted.", "success");
+      toast("Auction season has been successfully deleted.", "success");
+      setConfirm(null);
       fetchItems();
     } catch (error) {
-      toast(error.message, "error");
+      toast("Error deleting auction season: " + error.message, "error");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -110,54 +145,57 @@ export default function SeasonsPage() {
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search seasons, venues, or status"
         />
-        <button className="btn-primary shrink-0" onClick={openAdd}>
+        <Button variant="primary" className="shrink-0" onClick={openAdd}>
           <Plus size={18} />
           Create Season
-        </button>
+        </Button>
       </div>
 
       <div className="mt-6">
-        <SectionCard padded={false}>
+        <SectionCard padded={false} fullHeight={true}>
           {filtered.length ? (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                    <tr>
-                      <th>S.No</th>
-                      <th>Auction</th>
-                      <th>Season</th>
-                      <th>Date</th>
-                      <th>Location</th>
-                      <th>Status</th>
-                      <th className="w-16">Options</th>
-                    </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((item, index) => (
-                    <tr key={item.auction_id}>
-                      <td>{index + 1}</td>
-                      <td className="font-semibold text-slate-950">{item.auction_name}</td>
-                      <td>{item.season}</td>
-                      <td>{formatDate(item.auction_date)}</td>
-                      <td>{item.location || "-"}</td>
-                      <td>
-                        <span className={`badge ${item.status === "live" ? "badge-success" : item.status === "completed" ? "badge-neutral" : "badge-accent"}`}>
+            <>
+              <Table>
+                <TableHeader>
+                    <TableRow>
+                      <TableHead>S.No</TableHead>
+                      <TableHead>Auction</TableHead>
+                      <TableHead>Season</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-16">Options</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginated.map((item, index) => (
+                    <TableRow key={item.auction_id}>
+                      <TableCell>{(page - 1) * PAGE_SIZE + index + 1}</TableCell>
+                      <TableCell className="font-semibold text-slate-950">{item.auction_name}</TableCell>
+                      <TableCell>{item.season}</TableCell>
+                      <TableCell>{formatDate(item.auction_date)}</TableCell>
+                      <TableCell>{item.location || "-"}</TableCell>
+                      <TableCell>
+                        <Badge variant={item.status === "live" ? "success" : item.status === "completed" ? "neutral" : "gold"}>
                           {item.status}
-                        </span>
-                      </td>
-                      <td>
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
                         <TableDropdown
                           options={[
                             { label: "Edit", icon: PencilSimple, onClick: () => openEdit(item) },
                             { label: "Delete", icon: Trash, danger: true, onClick: () => setConfirm(item.auction_id) }
                           ]}
                         />
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </TableBody>
+              </Table>
+              <div className="px-6">
+                <Pagination current={page} total={totalPages} onChange={setPage} />
+              </div>
+            </>
           ) : (
             <EmptyState
               icon={CalendarDots}
@@ -171,32 +209,28 @@ export default function SeasonsPage() {
       <Modal open={modal} onClose={() => setModal(false)} title={editItem ? "Edit Auction Season" : "Create Auction Season"}>
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Auction Name" icon={Trophy}>
-            <input
-              className="input"
+            <Input
               placeholder="e.g. PSL Season 8 Auction"
               value={form.auction_name}
               onChange={(event) => setForm((current) => ({ ...current, auction_name: event.target.value }))}
             />
           </Field>
           <Field label="Season" icon={Calendar}>
-            <input
-              className="input"
+            <Input
               placeholder="e.g. 2024"
               value={form.season}
               onChange={(event) => setForm((current) => ({ ...current, season: event.target.value }))}
             />
           </Field>
           <Field label="Auction Date" icon={CalendarDots}>
-            <input
-              className="input"
+            <Input
               type="date"
               value={form.auction_date}
               onChange={(event) => setForm((current) => ({ ...current, auction_date: event.target.value }))}
             />
           </Field>
           <Field label="Location" icon={MapPin}>
-            <input
-              className="input"
+            <Input
               placeholder="e.g. PC Hotel, Karachi"
               value={form.location}
               onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))}
@@ -218,12 +252,17 @@ export default function SeasonsPage() {
         </div>
 
         <div className="mt-6 flex justify-end gap-3">
-          <button className="btn-outline" onClick={() => setModal(false)}>
+          <Button variant="outline" onClick={() => setModal(false)}>
             Cancel
-          </button>
-          <button className="btn-primary" onClick={save}>
-            Save Season
-          </button>
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={save}
+            loading={saving}
+            loadingText={editItem ? "Updating..." : "Creating..."}
+          >
+            {editItem ? "Update Season" : "Create Season"}
+          </Button>
         </div>
       </Modal>
 
@@ -234,6 +273,7 @@ export default function SeasonsPage() {
         title="Delete Auction Season"
         message="This will permanently remove the auction season and linked pool records."
         danger
+        loading={deleting}
       />
     </DashboardLayout>
   );

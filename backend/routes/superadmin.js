@@ -50,33 +50,55 @@ router.post('/users', async (req, res) => {
   const bcrypt = require('bcryptjs');
   const { username, email, password, role_name } = req.body;
   if (!username || !email || !password || !role_name) return res.status(400).json({ error: 'All fields required.' });
+  const tUsername = username.trim();
+  const tEmail = email.trim();
   try {
     const [[role]] = await db.query('SELECT role_id FROM Roles WHERE role_name = ?', [role_name]);
     if (!role) return res.status(400).json({ error: 'Invalid role.' });
-    const [[existing]] = await db.query('SELECT user_id FROM Users WHERE username = ? OR email = ?', [username, email]);
+    const [[existing]] = await db.query('SELECT user_id FROM Users WHERE username = ? OR email = ?', [tUsername, tEmail]);
     if (existing) return res.status(409).json({ error: 'Username or email already taken.' });
     const hash = await bcrypt.hash(password, 12);
-    await db.query('INSERT INTO Users (username, email, password_hash, role_id, is_active) VALUES (?, ?, ?, ?, 1)', [username, email, hash, role.role_id]);
+    await db.query('INSERT INTO Users (username, email, password_hash, role_id, is_active) VALUES (?, ?, ?, ?, 1)', [tUsername, tEmail, hash, role.role_id]);
     res.json({ message: 'User created.' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.put('/users/:id', async (req, res) => {
   const bcrypt = require('bcryptjs');
-  const { is_active, password, role_name } = req.body;
+  const { is_active, password, role_name, username, email } = req.body;
   try {
+    let updates = [];
+    let values = [];
+
     if (typeof is_active !== 'undefined') {
-      await db.query('UPDATE Users SET is_active = ? WHERE user_id = ?', [is_active ? 1 : 0, req.params.id]);
+      updates.push('is_active = ?');
+      values.push(is_active ? 1 : 0);
     }
     if (role_name) {
       const [[role]] = await db.query('SELECT role_id FROM Roles WHERE role_name = ?', [role_name]);
       if (!role) return res.status(400).json({ error: 'Invalid role.' });
-      await db.query('UPDATE Users SET role_id = ? WHERE user_id = ?', [role.role_id, req.params.id]);
+      updates.push('role_id = ?');
+      values.push(role.role_id);
     }
     if (password) {
       const hash = await bcrypt.hash(password, 12);
-      await db.query('UPDATE Users SET password_hash = ? WHERE user_id = ?', [hash, req.params.id]);
+      updates.push('password_hash = ?');
+      values.push(hash);
     }
+    if (username) {
+      updates.push('username = ?');
+      values.push(username.trim());
+    }
+    if (email) {
+      updates.push('email = ?');
+      values.push(email.trim());
+    }
+
+    if (updates.length > 0) {
+      values.push(req.params.id);
+      await db.query(`UPDATE Users SET ${updates.join(', ')} WHERE user_id = ?`, values);
+    }
+
     res.json({ message: 'User updated.' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -97,7 +119,8 @@ router.delete('/users/:id', async (req, res) => {
 router.get('/categories', async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT pc.*, (SELECT COUNT(*) FROM Players p WHERE p.category_id = pc.category_id) AS player_count
+      `SELECT pc.*, pc.min_price AS base_price,
+              (SELECT COUNT(*) FROM Players p WHERE p.category_id = pc.category_id) AS player_count
        FROM Player_Category pc ORDER BY pc.category_name`
     );
     res.json(rows);
@@ -105,23 +128,25 @@ router.get('/categories', async (req, res) => {
 });
 
 router.post('/categories', async (req, res) => {
-  const { category_name, description, min_price, max_price } = req.body;
+  const { category_name, description, base_price, min_price, max_price } = req.body;
   if (!category_name) return res.status(400).json({ error: 'Category name required.' });
   try {
+    const finalMin = base_price || min_price || 0;
     await db.query(
       `INSERT INTO Player_Category (category_name, min_price, max_price) VALUES (?, ?, ?)`,
-      [category_name, min_price || 0, max_price || 999999999]
+      [category_name, finalMin, max_price || 999999999]
     );
     res.json({ message: 'Category created.' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 router.put('/categories/:id', async (req, res) => {
-  const { category_name, min_price, max_price } = req.body;
+  const { category_name, base_price, min_price, max_price } = req.body;
   try {
+    const finalMin = base_price || min_price || 0;
     await db.query(
       `UPDATE Player_Category SET category_name = ?, min_price = ?, max_price = ? WHERE category_id = ?`,
-      [category_name, min_price || 0, max_price || 999999999, req.params.id]
+      [category_name, finalMin, max_price || 999999999, req.params.id]
     );
     res.json({ message: 'Category updated.' });
   } catch (err) { res.status(500).json({ error: err.message }); }

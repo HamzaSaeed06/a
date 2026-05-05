@@ -79,10 +79,12 @@ router.post('/teams', async (req, res) => {
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
+    const trimmedUsername = username.trim();
+    const trimmedEmail = email.trim();
     const hash = await bcrypt.hash(password, 12);
     const [uRes] = await conn.query(
       `INSERT INTO Users (username, email, password_hash, role_id) VALUES (?, ?, ?, 3)`,
-      [username, email, hash]
+      [trimmedUsername, trimmedEmail, hash]
     );
     const userId = uRes.insertId;
     const budget = Number(total_budget) || 95000000;
@@ -97,14 +99,46 @@ router.post('/teams', async (req, res) => {
 });
 
 router.put('/teams/:id', async (req, res) => {
-  const { team_name, city, home_ground, total_budget, owner_name } = req.body;
+  const { team_name, city, home_ground, total_budget, owner_name, username, email, password } = req.body;
+  const conn = await db.getConnection();
   try {
-    await db.query(
+    await conn.beginTransaction();
+
+    // 1. Update Team details
+    await conn.query(
       `UPDATE Teams SET team_name = ?, city = ?, home_ground = ?, total_budget = ?, owner_name = ? WHERE team_id = ?`,
       [team_name, city, home_ground, total_budget, owner_name, req.params.id]
     );
-    res.json({ message: 'Team updated.' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+
+    // 2. If Super Admin, allow fixing linked user credentials
+    if (req.user.role === 'Super Admin' && (username || email || password)) {
+      const [[team]] = await conn.query('SELECT user_id FROM Teams WHERE team_id = ?', [req.params.id]);
+      if (team?.user_id) {
+        let uUpdates = [];
+        let uValues = [];
+        if (username) { uUpdates.push('username = ?'); uValues.push(username.trim()); }
+        if (email)    { uUpdates.push('email = ?');    uValues.push(email.trim()); }
+        if (password) { 
+          const hash = await bcrypt.hash(password, 12);
+          uUpdates.push('password_hash = ?'); 
+          uValues.push(hash); 
+        }
+
+        if (uUpdates.length > 0) {
+          uValues.push(team.user_id);
+          await conn.query(`UPDATE Users SET ${uUpdates.join(', ')} WHERE user_id = ?`, uValues);
+        }
+      }
+    }
+
+    await conn.commit();
+    res.json({ message: 'Team and account details updated.' });
+  } catch (err) { 
+    await conn.rollback(); 
+    res.status(500).json({ error: err.message }); 
+  } finally {
+    conn.release();
+  }
 });
 
 router.delete('/teams/:id', async (req, res) => {
@@ -175,18 +209,19 @@ router.get('/players/available', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.post('/players', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'video', maxCount: 1 }]), async (req, res) => {
+router.post('/players', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'action_image', maxCount: 1 }, { name: 'video', maxCount: 1 }]), async (req, res) => {
   const { name, age, role, base_price, country_id, category_id, batting_style, bowling_style, matches, runs_scored, wickets, avg_score, strike_rate } = req.body;
   if (!name || !base_price) return res.status(400).json({ error: 'Name and base price required.' });
   const imageUrl = req.files?.image?.[0] ? `/uploads/${req.files.image[0].filename}` : null;
+  const actionImageUrl = req.files?.action_image?.[0] ? `/uploads/${req.files.action_image[0].filename}` : null;
   const videoUrl = req.files?.video?.[0] ? `/uploads/${req.files.video[0].filename}` : null;
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
     const [pRes] = await conn.query(
-      `INSERT INTO Players (name, age, role, base_price, country_id, category_id, batting_style, bowling_style, image_url, video_url, added_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [name, age || null, role, base_price, country_id || null, category_id || null, batting_style || null, bowling_style || null, imageUrl, videoUrl, req.user.user_id]
+      `INSERT INTO Players (name, age, role, base_price, country_id, category_id, batting_style, bowling_style, image_url, action_image_url, video_url, added_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, age || null, role, base_price, country_id || null, category_id || null, batting_style || null, bowling_style || null, imageUrl, actionImageUrl, videoUrl, req.user.user_id]
     );
     const pId = pRes.insertId;
     await conn.query(
@@ -199,7 +234,7 @@ router.post('/players', upload.fields([{ name: 'image', maxCount: 1 }, { name: '
   finally { conn.release(); }
 });
 
-router.put('/players/:id', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'video', maxCount: 1 }]), async (req, res) => {
+router.put('/players/:id', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'action_image', maxCount: 1 }, { name: 'video', maxCount: 1 }]), async (req, res) => {
   const { name, age, role, base_price, country_id, category_id, batting_style, bowling_style, matches, runs_scored, wickets, avg_score, strike_rate } = req.body;
   const conn = await db.getConnection();
   try {
@@ -207,15 +242,17 @@ router.put('/players/:id', upload.fields([{ name: 'image', maxCount: 1 }, { name
     let imageUpdate = '';
     let videoUpdate = '';
     const imageUrl = req.files?.image?.[0] ? `/uploads/${req.files.image[0].filename}` : null;
+    const actionImageUrl = req.files?.action_image?.[0] ? `/uploads/${req.files.action_image[0].filename}` : null;
     const videoUrl = req.files?.video?.[0] ? `/uploads/${req.files.video[0].filename}` : null;
 
     await conn.query(
       `UPDATE Players SET name=?, age=?, role=?, base_price=?, country_id=?, category_id=?, batting_style=?, bowling_style=?
        ${imageUrl ? ', image_url=?' : ''}
+       ${actionImageUrl ? ', action_image_url=?' : ''}
        ${videoUrl ? ', video_url=?' : ''}
        WHERE player_id=?`,
       [name, age || null, role, base_price, country_id || null, category_id || null, batting_style || null, bowling_style || null,
-       ...(imageUrl ? [imageUrl] : []), ...(videoUrl ? [videoUrl] : []), req.params.id]
+       ...(imageUrl ? [imageUrl] : []), ...(actionImageUrl ? [actionImageUrl] : []), ...(videoUrl ? [videoUrl] : []), req.params.id]
     );
 
     await conn.query(
@@ -229,6 +266,26 @@ router.put('/players/:id', upload.fields([{ name: 'image', maxCount: 1 }, { name
     res.json({ message: 'Player updated.' });
   } catch (err) { await conn.rollback(); res.status(500).json({ error: err.message }); }
   finally { conn.release(); }
+});
+
+router.post('/players/:id/direct-assign', async (req, res) => {
+  const { team_id, price, auction_id, season } = req.body;
+  if (!team_id || !price || !auction_id || !season) {
+    return res.status(400).json({ error: 'Team, price, auction, and season are required.' });
+  }
+  
+  try {
+    await db.query('CALL Sell_Player(?, ?, ?, ?, ?)', [
+      req.params.id,
+      team_id,
+      auction_id,
+      price,
+      season
+    ]);
+    res.json({ message: 'Player assigned directly to the team.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.delete('/players/:id', async (req, res) => {
@@ -267,11 +324,12 @@ router.get('/bids/:playerId', async (req, res) => {
 router.get('/auction-pool', async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT ap.*, p.name, p.role, p.base_price, pc.category_name, c.country_name, c.country_code
+      `SELECT ap.*, p.name, p.role, p.base_price, p.image_url, pc.category_name, c.country_name, c.country_code
        FROM Auction_Pool ap
        JOIN Players p ON ap.player_id = p.player_id
        LEFT JOIN Player_Category pc ON p.category_id = pc.category_id
        LEFT JOIN Countries c ON p.country_id = c.country_id
+       WHERE p.status != 'sold'
        ORDER BY ap.auction_id DESC, ap.lot_number ASC`
     );
     res.json(rows);
@@ -321,9 +379,14 @@ router.post('/next-player', async (req, res) => {
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
-    const [auctions] = await conn.query('SELECT auction_id FROM Auction ORDER BY auction_id DESC LIMIT 1');
+    const [auctions] = await conn.query('SELECT auction_id, status FROM Auction ORDER BY auction_id DESC LIMIT 1');
     if (!auctions.length) throw new Error('No auction season found.');
-    const auction_id = auctions[0].auction_id;
+    const { auction_id, status } = auctions[0];
+
+    // Auto-update status to live if it's upcoming
+    if (status === 'upcoming') {
+      await conn.query('UPDATE Auction SET status = ? WHERE auction_id = ?', ['live', auction_id]);
+    }
 
     // Mark current active as processed
     const [active] = await conn.query(`SELECT pool_id, player_id FROM Auction_Pool WHERE auction_id = ? AND status = 'active'`, [auction_id]);

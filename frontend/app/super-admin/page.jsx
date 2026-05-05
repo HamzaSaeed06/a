@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Broadcast,
   GlobeHemisphereWest,
@@ -10,108 +10,210 @@ import {
   Stack,
   UserList,
   UsersThree,
+  ArrowUpRight,
+  TrendUp,
+  Pulse,
+  ChartLineUp,
 } from "@phosphor-icons/react";
 import DashboardLayout from "../components/DashboardLayout";
-import { PageHeader, SectionCard, StatCard } from "../components/UI";
+import { PageHeader, SectionCard, StatCard, LineChart } from "../components/UI";
 import { apiFetch } from "../lib/api";
 
 export default function SuperAdminPage() {
   const [stats, setStats] = useState(null);
+  const [budgetData, setBudgetData] = useState({ total: 0, spent: 0, chart: [] });
+  const [categoryData, setCategoryData] = useState([]);
+  const [activityData, setActivityData] = useState([]);
+  const [recentLogs, setRecentLogs] = useState([]);
 
   useEffect(() => {
-    Promise.all([
-      apiFetch("/super-admin/overview-stats").catch(() => null),
-      apiFetch("/admin/dashboard-stats").catch(() => null),
-    ]).then(([platformStats, adminStats]) => {
-      setStats({ ...platformStats, ...adminStats });
-    });
+    const fetchData = async () => {
+      try {
+        const [pStats, aStats, teams, players, logs, auctions] = await Promise.all([
+          apiFetch("/super-admin/overview-stats"),
+          apiFetch("/admin/dashboard-stats"),
+          apiFetch("/admin/teams"),
+          apiFetch("/admin/players"),
+          apiFetch("/admin/auction-log"),
+          apiFetch("/super-admin/auctions")
+        ]);
+
+        setStats({ ...pStats, ...aStats });
+        setRecentLogs(logs.slice(0, 8));
+
+        // Process Budget
+        const totalBudget = teams.reduce((acc, t) => acc + Number(t.total_budget), 0);
+        const remainingBudget = teams.reduce((acc, t) => acc + Number(t.remaining_budget), 0);
+        const spent = totalBudget - remainingBudget;
+        setBudgetData({ 
+          total: totalBudget, 
+          spent, 
+          chart: teams.map(t => Math.round((t.total_budget - t.remaining_budget) / 10000000)) 
+        });
+
+        // Process Categories (Fixed set to ensure 0s show up)
+        const allCategories = ["Platinum", "Diamond", "Gold", "Silver", "Emerging"];
+        const catMap = {};
+        allCategories.forEach(c => catMap[c] = 0);
+        
+        players.forEach(p => {
+          const name = p.category_name;
+          if (catMap.hasOwnProperty(name)) {
+            catMap[name]++;
+          }
+        });
+        
+        const catArray = allCategories.map(name => ({
+          label: name,
+          count: catMap[name],
+          val: (catMap[name] / (players.length || 1)) * 100,
+          color: name === "Platinum" ? "bg-slate-900" : 
+                 name === "Diamond" ? "bg-blue-600" : 
+                 name === "Gold" ? "bg-amber-500" :
+                 name === "Silver" ? "bg-slate-400" : "bg-emerald-500"
+        }));
+        setCategoryData(catArray);
+
+        // Process Activity (Season-wise)
+        const seasonActivity = auctions.map(auction => {
+          const logsInSeason = logs.filter(l => l.auction_id === auction.auction_id).length;
+          return {
+            label: `S${auction.season}`,
+            count: logsInSeason
+          };
+        }).reverse();
+        
+        setActivityData(seasonActivity);
+
+      } catch (err) {
+        console.error("Failed to fetch dashboard data:", err);
+      }
+    };
+
+    fetchData();
   }, []);
 
-  const quickLinks = [
-    {
-      href: "/super-admin/users",
-      title: "User Management",
-      sub: "Manage administrator and franchise accounts.",
-      icon: UserList,
-    },
-    {
-      href: "/super-admin/seasons",
-      title: "Season Management",
-      sub: "Create and manage auction events and schedules.",
-      icon: Broadcast,
-    },
-    {
-      href: "/super-admin/categories",
-      title: "Player Categories",
-      sub: "Define player roles and base price bands.",
-      icon: Stack,
-    },
-    {
-      href: "/super-admin/countries",
-      title: "Country Registry",
-      sub: "Manage player nationalities and regions.",
-      icon: GlobeHemisphereWest,
-    },
-  ];
+  const formatCr = (val) => {
+    if (val >= 10000000) return (val / 10000000).toFixed(1) + " Cr";
+    return val.toLocaleString();
+  };
 
   return (
     <DashboardLayout allowedRoles={["Super Admin"]}>
-      <PageHeader title="Platform Governance" />
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Users" value={stats?.total_users ?? "—"} icon={UserList} tone="accent" />
-        <StatCard title="Active Users" value={stats?.active_users ?? "—"} icon={ShieldCheck} tone="success" />
-        <StatCard title="Teams" value={stats?.total_teams ?? "—"} icon={UsersThree} tone="warning" />
-        <StatCard title="Live Auctions" value={stats?.live_auctions ?? "—"} icon={Broadcast} tone="accent" />
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-h1 text-slate-900">Platform Governance</h1>
+          <p className="text-sub text-slate-900">Real-time oversight of auction ecosystem and financial velocity.</p>
+        </div>
+        <div className="flex gap-3">
+           <div className="px-4 py-2 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-ui-semibold text-emerald-700 text-xs">System Live</span>
+           </div>
+        </div>
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Players" value={stats?.total_players ?? "—"} icon={Stack} tone="default" />
-        <StatCard title="Countries" value={stats?.total_countries ?? "—"} icon={GlobeHemisphereWest} tone="accent" />
-        <StatCard title="Categories" value={stats?.total_categories ?? "—"} icon={Stack} tone="success" />
-        <StatCard title="Seasons" value={stats?.total_seasons ?? "—"} icon={Broadcast} tone="warning" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard title="Platform Users" value={stats?.total_users ?? "—"} icon={UserList} tone="accent" />
+        <StatCard title="Active Session" value={stats?.active_users ?? "—"} icon={Pulse} tone="success" />
+        <StatCard title="Global Purse" value={formatCr(budgetData.total)} icon={ChartLineUp} tone="warning" />
+        <StatCard title="Live Events" value={stats?.live_auctions ?? "—"} icon={Broadcast} tone="accent" />
       </div>
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <SectionCard title="Quick Actions">
-          <div className="grid gap-4 sm:grid-cols-2">
-            {quickLinks.map(({ href, title, sub, icon: Icon }, index) => (
-              <motion.div
-                key={href}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.06 }}
-              >
-                <Link
-                  href={href}
-                  className="group block rounded-xl border border-slate-200 bg-white p-5 transition hover:border-blue-300 hover:shadow-md"
-                >
-                  <div className="mb-4 inline-flex rounded-xl border border-blue-100 bg-blue-50 p-2.5 text-blue-600 transition group-hover:bg-blue-100 group-hover:scale-105">
-                    <Icon size={20} weight="regular" />
-                  </div>
-                  <h3 className="text-sm font-bold text-slate-900 group-hover:text-blue-700 transition">{title}</h3>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">{sub}</p>
-                </Link>
-              </motion.div>
+      <div className="mt-8 grid gap-6 md:grid-cols-2">
+        {/* Row 1, Col 1: Financial Analytics */}
+        <SectionCard title="Financial Velocity" sub="Cumulative franchise spending across teams.">
+          <div className="h-[220px] flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+               <div>
+                  <h4 className="text-h2 text-slate-950">{formatCr(budgetData.spent)}</h4>
+                  <p className="text-sub text-slate-900 tracking-tight">Utilized liquidity</p>
+               </div>
+               <div className="text-right">
+                  <p className="text-h3 text-blue-600">{((budgetData.spent / budgetData.total) * 100 || 0).toFixed(1)}%</p>
+                  <p className="text-sub text-slate-900 tracking-tight">Purse cap</p>
+               </div>
+            </div>
+            <div className="mt-auto">
+              <LineChart 
+                data={budgetData.chart} 
+                color="#2563eb" 
+                height={130} 
+                prefix="Rs." 
+                suffix="Cr" 
+              />
+            </div>
+          </div>
+        </SectionCard>
+
+        {/* Row 1, Col 2: Activity Analytics */}
+        <SectionCard title="System Activity" sub="Bidding and interaction volume per season.">
+          <div className="h-[220px] flex flex-col justify-between">
+            <div className="mt-auto">
+              <LineChart 
+                data={activityData.map(d => d.count)} 
+                color="#0f172a" 
+                height={160} 
+                suffix=" Acts" 
+              />
+              <div className="mt-4 flex justify-between px-2">
+                {activityData.map((item, i) => (
+                  <span key={i} className="text-ui-xs font-bold text-slate-400 tracking-tighter">
+                    {item.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </SectionCard>
+
+        {/* Row 2, Col 1: Category Distribution */}
+        <SectionCard title="Market Density" sub="Player distribution across categories.">
+          <div className="h-[260px] overflow-y-auto pr-2 custom-scrollbar space-y-6">
+            {categoryData.map((item) => (
+              <div key={item.label}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-ui-semibold text-slate-800">{item.label}</span>
+                  <span className="text-ui text-slate-500 font-bold">{item.count} Players</span>
+                </div>
+                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${item.val}%` }}
+                    className={`h-full ${item.color} rounded-full`}
+                  />
+                </div>
+              </div>
             ))}
           </div>
         </SectionCard>
 
-        <SectionCard title="System Roles & Permissions">
-          <div className="grid gap-3">
-            {[
-              "Super Administrators have full access to all platform features.",
-              "This includes managing users, settings, and auction configurations.",
-              "Administrators can only manage teams, players, and run the live auction.",
-            ].map((item, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4"
-              >
-                <div className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" />
-                <p className="text-sm leading-6 text-slate-600 font-medium">{item}</p>
-              </div>
-            ))}
+        {/* Row 2, Col 2: Live Audit Feed */}
+        <SectionCard title="Live Audit Feed" sub="Recent system-wide occurrences.">
+          <div className="h-[260px] overflow-y-auto pr-2 custom-scrollbar space-y-4">
+            <AnimatePresence mode="popLayout">
+              {recentLogs.map((log, i) => (
+                <motion.div 
+                  key={log.log_id || i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group"
+                >
+                  <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-white transition-colors">
+                    <Pulse size={16} className="text-slate-500" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                     <p className="text-ui-semibold text-slate-900 truncate">{log.player_name || "System"}</p>
+                     <p className="text-ui-xs text-slate-500 line-clamp-1">{log.log_message}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                     <p className="text-ui-xs font-bold text-slate-400 tracking-tighter">
+                        {new Date(log.log_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                     </p>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         </SectionCard>
       </div>

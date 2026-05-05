@@ -25,6 +25,17 @@ import {
   Pagination,
   Toast,
   useToast,
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+  Badge,
+  Button,
+  Input,
+  Select,
+  TableDropdown,
 } from "../../components/UI";
 import { apiFetch } from "../../lib/api";
 import { formatDate } from "../../lib/format";
@@ -48,9 +59,16 @@ export default function UsersPage() {
   const [page, setPage] = useState(1);
   const { toasts, toast, removeToast } = useToast();
   
+  const [saving, setSaving] = useState(false);
+  const [toggling, setToggling] = useState(null); // stores user_id being toggled
+  const [deleting, setDeleting] = useState(false);
+  
   const PAGE_SIZE = 7;
 
-  const fetchUsers = () => apiFetch("/super-admin/users").then(setUsers).catch(() => {});
+  const fetchUsers = () => 
+    apiFetch("/super-admin/users")
+      .then(setUsers)
+      .catch((err) => toast("Failed to load platform users: " + err.message, "error"));
 
   useEffect(() => {
     fetchUsers();
@@ -89,16 +107,20 @@ export default function UsersPage() {
   };
 
   const save = async () => {
+    if (!form.username) return toast("Username is required.", "error");
+    setSaving(true);
     try {
       if (editUser) {
         await apiFetch(`/super-admin/users/${editUser.user_id}`, {
           method: "PUT",
           body: JSON.stringify({
+            username: form.username,
+            email: form.email,
             password: form.password || undefined,
             role_name: form.role,
           }),
         });
-        toast("User updated.", "success");
+        toast("User profile updated successfully.", "success");
       } else {
         await apiFetch("/super-admin/users", {
           method: "POST",
@@ -109,42 +131,60 @@ export default function UsersPage() {
             role_name: form.role,
           }),
         });
-        toast("User created.", "success");
+        toast("New administrative account created.", "success");
       }
       setModal(false);
       fetchUsers();
     } catch (error) {
-      toast(error.message, "error");
+      toast("Error saving user: " + error.message, "error");
+    } finally {
+      setSaving(false);
     }
   };
 
   const toggleActive = async (user) => {
+    setToggling(user.user_id);
     try {
       await apiFetch(`/super-admin/users/${user.user_id}`, {
         method: "PUT",
         body: JSON.stringify({ is_active: user.is_active ? 0 : 1 }),
       });
-      toast(`User ${user.is_active ? "deactivated" : "activated"}.`, "success");
+      toast(`User account has been ${user.is_active ? "deactivated" : "activated"}.`, "success");
       fetchUsers();
     } catch (error) {
-      toast(error.message, "error");
+      toast("Error toggling user status: " + error.message, "error");
+    } finally {
+      setToggling(null);
     }
   };
 
   const remove = async (id) => {
+    setDeleting(true);
     try {
       await apiFetch(`/super-admin/users/${id}`, { method: "DELETE" });
-      toast("User deleted.", "success");
+      toast("User account has been permanently deleted.", "success");
+      setConfirm(null);
       fetchUsers();
     } catch (error) {
-      toast(error.message, "error");
+      toast("Error deleting user: " + error.message, "error");
+    } finally {
+      setDeleting(false);
     }
   };
 
   return (
     <DashboardLayout allowedRoles={["Super Admin"]}>
       <Toast toasts={toasts} removeToast={removeToast} />
-      <PageHeader title="Users and Roles" subtitle="View and search system accounts" />
+      <PageHeader 
+        title="Users and Roles" 
+        subtitle="View and search system accounts" 
+        action={
+          <Button variant="primary" onClick={openAdd}>
+            <Plus size={18} />
+            Create User
+          </Button>
+        }
+      />
       <div className="mb-6">
         <SearchInput
           value={search}
@@ -154,43 +194,61 @@ export default function UsersPage() {
       </div>
 
       <div className="mt-6">
-        <SectionCard padded={false}>
+        <SectionCard padded={false} fullHeight={true}>
           {filtered.length ? (
             <>
-              <div className="overflow-auto h-[calc(100vh-200px)] relative border-t border-slate-100 no-scrollbar">
-                <table className="w-full border-collapse">
-                  <thead className="sticky top-0 z-10 bg-white border-b border-slate-200">
-                    <tr>
-                      <th>S.No</th>
-                      <th>Username</th>
-                      <th>Email</th>
-                      <th>Role</th>
-                      <th>Status</th>
-                      <th>Created</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginated.map((user, index) => (
-                      <tr key={user.user_id} className="border-b border-slate-200 hover:bg-slate-50/50 transition-colors">
-                        <td>{(page - 1) * PAGE_SIZE + index + 1}</td>
-                        <td className="font-semibold text-slate-950">{user.username}</td>
-                        <td>{user.email}</td>
-                        <td>
-                          <span className={`badge ${user.role_name === "Super Admin" ? "badge-accent" : user.role_name === "Admin" ? "badge-neutral" : "badge-success"}`}>
-                            {user.role_name}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`badge ${user.is_active ? "badge-success" : "badge-danger"}`}>
-                            {user.is_active ? "Active" : "Inactive"}
-                          </span>
-                        </td>
-                        <td>{formatDate(user.created_at)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>S.No</TableHead>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="w-16">Options</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginated.map((user, index) => (
+                    <TableRow key={user.user_id}>
+                      <TableCell>{(page - 1) * PAGE_SIZE + index + 1}</TableCell>
+                      <TableCell className="font-semibold text-slate-950">{user.username}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant={user.role_name === "Super Admin" ? "accent" : user.role_name === "Admin" ? "neutral" : "success"}>
+                          {user.role_name}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <button 
+                          className="hover:opacity-80 transition-opacity"
+                          onClick={() => toggleActive(user)}
+                          disabled={toggling === user.user_id}
+                        >
+                          {toggling === user.user_id ? (
+                            <Badge variant="neutral">Updating...</Badge>
+                          ) : (
+                            <Badge variant={user.is_active ? "success" : "danger"}>
+                              {user.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                          )}
+                        </button>
+                      </TableCell>
+                      <TableCell>{formatDate(user.created_at)}</TableCell>
+                      <TableCell>
+                        <TableDropdown
+                          options={[
+                            { label: "Edit Role", icon: UserCircleGear, onClick: () => openEdit(user) },
+                            { label: "Change Password", icon: Key, onClick: () => openEdit(user) },
+                            { label: "Delete", icon: Trash, danger: true, onClick: () => setConfirm(user.user_id) }
+                          ]}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </>
           ) : (
             <EmptyState
@@ -205,6 +263,61 @@ export default function UsersPage() {
         </div>
       </div>
 
+      <Modal open={modal} onClose={() => setModal(false)} title={editUser ? "Edit User Account" : "Create Managed Account"} width={420}>
+        <div className="space-y-4">
+          <Field label="Username" icon={User}>
+            <Input
+              placeholder="e.g. jameel_admin"
+              value={form.username}
+              onChange={(e) => setForm((c) => ({ ...c, username: e.target.value }))}
+            />
+          </Field>
+          <Field label="Email Address" icon={EnvelopeSimple}>
+            <Input
+              placeholder="e.g. jameel@auction.com"
+              value={form.email}
+              onChange={(e) => setForm((c) => ({ ...c, email: e.target.value }))}
+            />
+          </Field>
+          <Field label="Account Role" icon={ShieldCheck}>
+            <Select
+              value={form.role}
+              onChange={(val) => setForm((c) => ({ ...c, role: val }))}
+              options={ROLES.map(r => ({ label: r, value: r }))}
+            />
+          </Field>
+          <Field label={editUser ? "Reset Password" : "Secure Password"} icon={Key}>
+            <Input
+              type="password"
+              placeholder={editUser ? "Leave blank to keep current" : "••••••••"}
+              value={form.password}
+              onChange={(e) => setForm((c) => ({ ...c, password: e.target.value }))}
+            />
+          </Field>
+        </div>
+
+        <div className="mt-8 flex justify-end gap-3">
+          <Button variant="outline" onClick={() => setModal(false)}>Cancel</Button>
+          <Button 
+            variant="primary" 
+            onClick={save}
+            loading={saving}
+            loadingText={editUser ? "Updating..." : "Creating..."}
+          >
+            {editUser ? "Update Account" : "Create Account"}
+          </Button>
+        </div>
+      </Modal>
+
+      <ConfirmModal
+        open={!!confirm}
+        onClose={() => setConfirm(null)}
+        onConfirm={() => remove(confirm)}
+        title="Delete User Account"
+        message="This will permanently remove this user's access to the platform."
+        danger
+        loading={deleting}
+      />
     </DashboardLayout>
   );
 }

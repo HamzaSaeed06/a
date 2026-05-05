@@ -2,6 +2,16 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Lenis from "lenis";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from "recharts";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CaretDown,
@@ -18,24 +28,141 @@ import {
 } from "@phosphor-icons/react";
 import { cn } from "../lib/format";
 
-export function StatCard({ title, value, sub, icon: Icon }) {
+// --- Base Core Components ---
+export const Button = React.forwardRef(({ className, variant = "primary", size = "default", loading = false, loadingText, children, ...props }, ref) => {
+  const baseStyles = "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all whitespace-nowrap border border-transparent disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
+  const variants = {
+    primary: "bg-slate-900 text-white shadow-sm hover:bg-slate-700 hover:shadow active:scale-[0.98]",
+    outline: "bg-transparent text-slate-900 border-slate-200 hover:bg-slate-50 hover:border-slate-300 active:bg-slate-100",
+    ghost: "bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:bg-slate-200"
+  };
+  const sizes = {
+    default: "h-10 px-5 text-ui-semibold",
+    sm: "h-8 px-3 text-ui-xs font-semibold",
+    icon: "h-9 w-9 justify-center"
+  };
+
+  return (
+    <button
+      type={props.type || "button"}
+      ref={ref}
+      disabled={loading || props.disabled}
+      className={cn(baseStyles, variants[variant], sizes[size], className)}
+      {...props}
+    >
+      {loading ? (
+        <>
+          <Spinner size={16} color={variant === 'primary' ? 'white' : 'slate'} />
+          {loadingText || children}
+        </>
+      ) : children}
+    </button>
+  );
+});
+Button.displayName = "Button";
+
+export const Input = React.forwardRef(({ className, icon: Icon, ...props }, ref) => {
+  return (
+    <div className="relative w-full flex items-center">
+      {Icon && <Icon size={18} className="absolute left-3 text-slate-500 pointer-events-none" />}
+      <input
+        ref={ref}
+        className={cn(
+          "w-full rounded-md border border-slate-200 bg-white h-10 px-3 text-ui text-slate-900 outline-none transition-all placeholder:text-slate-500 focus:border-slate-400 focus:ring-2 focus:ring-slate-100",
+          Icon && "pl-10",
+          className
+        )}
+        {...props}
+      />
+    </div>
+  );
+});
+Input.displayName = "Input";
+
+export const Badge = ({ children, variant = "neutral", className }) => {
+  const variants = {
+    success: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    danger: "bg-red-100 text-red-700 border-red-200",
+    neutral: "bg-slate-100 text-slate-600 border-slate-200",
+    gold: "bg-amber-100 text-amber-700 border-amber-200"
+  };
+  return (
+    <span className={cn("inline-flex items-center px-2.5 py-1 rounded-md text-ui-xs font-bold tracking-wide capitalize border", variants[variant], className)}>
+      {children}
+    </span>
+  );
+};
+
+export const RoleBadge = ({ role, className }) => {
+  const getIcon = (r) => {
+    const roleLower = r?.toLowerCase() || "";
+    if (roleLower.includes("batsman")) return "🏏";
+    if (roleLower.includes("bowler")) return "🔴";
+    if (roleLower.includes("all-rounder")) return "🎖️";
+    if (roleLower.includes("wicket-keeper")) return "🧤";
+    return "👤";
+  };
+  
+  const icon = getIcon(role);
+  
+  return (
+    <div className={cn("inline-flex items-center gap-2 text-ui", className)}>
+      <span className="text-[1.2rem] leading-none drop-shadow-sm">{icon}</span>
+      <span className="capitalize">{role}</span>
+    </div>
+  );
+};
+
+// --- Table Components ---
+export const Table = React.forwardRef(({ className, ...props }, ref) => (
+  <div className="w-full overflow-auto relative border-t border-slate-100 no-scrollbar">
+    <table ref={ref} className={cn("w-full border-collapse text-left", className)} {...props} />
+  </div>
+))
+Table.displayName = "Table"
+
+export const TableHeader = React.forwardRef(({ className, ...props }, ref) => (
+  <thead ref={ref} className={cn("sticky top-0 z-10 bg-slate-50 border-b border-slate-200", className)} {...props} />
+))
+TableHeader.displayName = "TableHeader"
+
+export const TableBody = React.forwardRef(({ className, ...props }, ref) => (
+  <tbody ref={ref} className={cn("", className)} {...props} />
+))
+TableBody.displayName = "TableBody"
+
+export const TableRow = React.forwardRef(({ className, ...props }, ref) => (
+  <tr ref={ref} className={cn("border-b border-slate-200 transition-colors hover:bg-slate-50/50", className)} {...props} />
+))
+TableRow.displayName = "TableRow"
+
+export const TableHead = React.forwardRef(({ className, ...props }, ref) => (
+  <th ref={ref} className={cn("h-12 px-4 text-left align-middle text-sub text-slate-900", className)} {...props} />
+))
+TableHead.displayName = "TableHead"
+
+export const TableCell = React.forwardRef(({ className, ...props }, ref) => (
+  <td ref={ref} className={cn("px-4 py-2 align-middle text-ui text-slate-900 h-12", className)} {...props} />
+))
+TableCell.displayName = "TableCell"
+export function StatCard({ title, value, sub, icon: Icon, tone = "default" }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className="surface p-6"
+      className="bg-white border border-slate-200 rounded-md shadow-sm p-6 transition-all hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold text-slate-500 mb-1.5">
+          <p className="text-sub text-slate-900 mb-2">
             {title}
           </p>
-          <p className="text-4xl font-semibold text-slate-900 truncate tracking-tight">{value}</p>
-          {sub ? <p className="mt-1 text-[0.75rem] text-slate-500 font-medium">{sub}</p> : null}
+          <p className="text-h1 text-slate-900 truncate tracking-tight">{value}</p>
+          {sub ? <p className="mt-1 text-ui-xs text-slate-600 font-medium">{sub}</p> : null}
         </div>
         {Icon ? (
-          <div className="shrink-0 text-slate-400">
+          <div className="shrink-0 text-slate-500">
             <Icon size={24} weight="regular" />
           </div>
         ) : null}
@@ -48,34 +175,73 @@ export function PageHeader({ title, subtitle, action }) {
   return (
     <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div>
-        <h1 className="text-h1">{title}</h1>
-        {subtitle ? <p className="text-body mt-2">{subtitle}</p> : null}
+        <h1 className="text-h1 text-slate-900">{title}</h1>
+        {subtitle ? <p className="text-ui text-slate-900 mt-2">{subtitle}</p> : null}
       </div>
       {action ? <div className="flex flex-wrap gap-3">{action}</div> : null}
     </div>
   );
 }
 
-export function SectionCard({ title, sub, action, children, padded = true }) {
+
+
+export function SectionCard({ title, sub, action, children, padded = true, className, fullHeight = false }) {
   return (
-    <section className="surface overflow-hidden">
+    <section 
+      className={cn(
+        "bg-white border border-slate-200 rounded-md shadow-sm overflow-hidden flex flex-col", 
+        fullHeight && "min-h-[calc(100vh-280px)] lg:min-h-[calc(100vh-220px)]",
+        className
+      )}
+    >
       {(title || action || sub) && (
         <div className="border-b border-slate-200 px-6 py-5 bg-slate-50/50">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              {title ? <h2 className="text-h2 text-xl">{title}</h2> : null}
-              {sub ? <p className="mt-1 text-sm text-slate-500">{sub}</p> : null}
+              {title ? <h2 className="text-h3 text-slate-900">{title}</h2> : null}
+              {sub ? <p className="mt-1 text-ui text-slate-900">{sub}</p> : null}
             </div>
             {action ? <div className="flex flex-wrap gap-2.5">{action}</div> : null}
           </div>
         </div>
       )}
-      <div className={padded ? "p-6" : ""}>{children}</div>
+      <div className={cn("flex-1 flex flex-col", padded && "p-6")}>{children}</div>
     </section>
   );
 }
 
 export function Modal({ open, onClose, title, children, width = 480 }) {
+  const scrollRef = useRef(null);
+  
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+      
+      // Initialize local Lenis for the modal content
+      if (scrollRef.current) {
+        const lenis = new Lenis({
+          wrapper: scrollRef.current,
+          duration: 1.2,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+          smoothWheel: true,
+        });
+
+        function raf(time) {
+          lenis.raf(time);
+          requestAnimationFrame(raf);
+        }
+        requestAnimationFrame(raf);
+        
+        return () => {
+          lenis.destroy();
+          document.body.style.overflow = "unset";
+        };
+      }
+    } else {
+      document.body.style.overflow = "unset";
+    }
+  }, [open]);
+
   return (
     <AnimatePresence>
       {open ? (
@@ -91,21 +257,26 @@ export function Modal({ open, onClose, title, children, width = 480 }) {
             initial={{ opacity: 0, y: 10, scale: 0.99 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.99 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="relative surface-elevated max-h-[90vh] overflow-hidden w-full flex flex-col shadow-2xl"
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative bg-white border border-slate-200 rounded-md max-h-[90vh] overflow-hidden w-full flex flex-col shadow-2xl"
             style={{ maxWidth: width }}
           >
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-              <h3 className="text-[12px] font-bold text-slate-900 uppercase tracking-widest">{title}</h3>
+              <h3 className="text-sm font-bold text-slate-900 capitalize tracking-wider">{title}</h3>
               <button
                 type="button"
-                className="rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                className="rounded-md p-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
                 onClick={onClose}
               >
                 <X size={18} />
               </button>
             </div>
-            <div className="overflow-y-auto p-5">{children}</div>
+            <div 
+              ref={scrollRef}
+              className="flex-1 overflow-y-auto p-6 custom-scrollbar"
+            >
+              <div>{children}</div>
+            </div>
           </motion.div>
         </div>
       ) : null}
@@ -117,24 +288,29 @@ export function Field({ label, children, hint, error, icon: Icon }) {
   return (
     <label className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2">
-        {Icon ? <Icon size={18} className="text-slate-400" /> : null}
-        <span className="text-[0.75rem] font-semibold text-slate-700">
+        {Icon ? <Icon size={18} className="text-slate-500" /> : null}
+        <span className="text-ui-semibold text-slate-700">
           {label}
         </span>
       </div>
       {children}
-      {hint ? <span className="text-xs text-slate-500">{hint}</span> : null}
-      {error ? <span className="text-xs text-red-500">{error}</span> : null}
+      {hint ? <span className="text-ui-xs text-slate-600">{hint}</span> : null}
+      {error ? <span className="text-ui-xs text-red-500">{error}</span> : null}
     </label>
   );
 }
 
-export function Spinner({ size = 20 }) {
+export function Spinner({ size = 20, color = "slate" }) {
+  const colors = {
+    slate: "border-slate-300 border-t-slate-800",
+    white: "border-white/20 border-t-white"
+  };
+  
   return (
     <motion.div
       animate={{ rotate: 360 }}
       transition={{ duration: 0.75, repeat: Infinity, ease: "linear" }}
-      className="rounded-full border-2 border-slate-300 border-t-slate-800"
+      className={cn("rounded-full border-2", colors[color] || colors.slate)}
       style={{ width: size, height: size }}
     />
   );
@@ -142,18 +318,18 @@ export function Spinner({ size = 20 }) {
 
 export function EmptyState({ icon: Icon, title, sub }) {
   return (
-    <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+    <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center h-full min-h-[400px]">
       {Icon ? (
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="mb-6 rounded-full bg-slate-100 p-6 text-slate-400"
+          className="mb-6 rounded-full bg-slate-100 p-6 text-slate-500"
         >
           <Icon size={32} weight="light" />
         </motion.div>
       ) : null}
-      <h3 className="text-h3 mb-2">{title}</h3>
-      {sub ? <p className="max-w-md text-body">{sub}</p> : null}
+      <h3 className="text-h3 text-slate-900 mb-2">{title}</h3>
+      {sub ? <p className="max-w-md text-ui text-slate-900">{sub}</p> : null}
     </div>
   );
 }
@@ -191,22 +367,36 @@ export function ConfirmModal({
   message,
   danger = false,
 }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleConfirm = async () => {
+    setLoading(true);
+    try {
+      await onConfirm();
+      onClose();
+    } catch (err) {
+      // Error should be handled by the caller via toast
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Modal open={open} onClose={onClose} title={title} width={420}>
-      <p className="text-body mb-8">{message}</p>
+      <p className="text-ui text-slate-600 mb-8">{message}</p>
       <div className="flex justify-end gap-3">
-        <button className="btn btn-ghost" onClick={onClose}>
+        <Button variant="ghost" onClick={onClose} disabled={loading}>
           Cancel
-        </button>
-        <button
-          className={cn("btn", danger ? "btn-primary bg-red-600 hover:bg-red-700" : "btn-primary")}
-          onClick={() => {
-            onConfirm();
-            onClose();
-          }}
+        </Button>
+        <Button
+          variant={danger ? "primary" : "primary"}
+          className={danger ? "bg-red-600 hover:bg-red-700" : ""}
+          loading={loading}
+          loadingText="Processing..."
+          onClick={handleConfirm}
         >
           Confirm
-        </button>
+        </Button>
       </div>
     </Modal>
   );
@@ -214,18 +404,13 @@ export function ConfirmModal({
 
 export function SearchInput({ value, onChange, placeholder = "Search..." }) {
   return (
-    <div className="relative w-full max-w-sm flex items-center">
-      <MagnifyingGlass
-        size={18}
-        className="absolute left-3 text-slate-400 pointer-events-none"
-      />
-      <input
-        className="input input-search"
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-      />
-    </div>
+    <Input
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      icon={MagnifyingGlass}
+      className="max-w-sm"
+    />
   );
 }
 
@@ -249,7 +434,7 @@ const SelectOption = ({ opt, value, onChange, setOpen }) => {
         backgroundColor: value === opt.value ? '#e2e8f0' : (isHovered ? '#f1f5f9' : 'transparent'),
         color: value === opt.value || isHovered ? '#0f172a' : '#475569',
       }}
-      className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 font-semibold transition-colors duration-75"
+      className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-ui-semibold transition-colors duration-75"
     >
       {opt.label}
     </button>
@@ -279,15 +464,15 @@ export function Select({ value, onChange, options, placeholder = "Select option"
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          "input flex items-center justify-between gap-2 text-left transition-all",
+          "w-full rounded-md border border-slate-200 bg-white h-10 px-3 text-sm text-slate-900 outline-none transition-all flex items-center justify-between gap-2 text-left hover:bg-slate-50",
           open && "border-slate-400 ring-2 ring-slate-100"
         )}
       >
         <div className="flex items-center gap-2 truncate">
-          {Icon && <Icon size={16} className="text-slate-400 shrink-0" />}
-          <span className={cn("truncate text-sm", !value && "text-slate-500")}>{selectedLabel}</span>
+          {Icon && <Icon size={16} className="text-slate-500 shrink-0" />}
+          <span className={cn("truncate text-ui", !value && "text-slate-600")}>{selectedLabel}</span>
         </div>
-        <CaretDown size={14} className={cn("text-slate-400 transition-transform duration-200", open && "rotate-180")} />
+        <CaretDown size={14} className={cn("text-slate-500 transition-transform duration-200", open && "rotate-180")} />
       </button>
 
       <AnimatePresence>
@@ -298,17 +483,23 @@ export function Select({ value, onChange, options, placeholder = "Select option"
             exit={{ opacity: 0, y: 4, scale: 0.99 }}
             transition={{ duration: 0.1, ease: "easeOut" }}
             data-lenis-prevent
-            className="absolute left-0 right-0 top-full z-20 mt-1 max-h-40 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg shadow-slate-200/40 scrollbar-hide flex flex-col gap-0.5"
+            className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg shadow-slate-200/40 scrollbar-hide flex flex-col gap-0.5"
           >
-            {options.map((opt) => (
-              <SelectOption 
-                key={opt.value} 
-                opt={opt} 
-                value={value} 
-                onChange={onChange} 
-                setOpen={setOpen} 
-              />
-            ))}
+            {options.length > 0 ? (
+              options.map((opt) => (
+                <SelectOption 
+                  key={opt.value} 
+                  opt={opt} 
+                  value={value} 
+                  onChange={onChange} 
+                  setOpen={setOpen} 
+                />
+              ))
+            ) : (
+              <div className="px-3 py-4 text-center">
+                <p className="text-ui-xs font-semibold text-slate-400">No results found</p>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -321,7 +512,7 @@ const PaginationRoot = ({ className, ...props }) => (
   <nav
     role="navigation"
     aria-label="pagination"
-    className={cn("mx-auto flex w-full justify-end", className)}
+    className={cn("mx-auto flex w-full justify-center md:justify-end", className)}
     {...props}
   />
 )
@@ -329,7 +520,7 @@ const PaginationRoot = ({ className, ...props }) => (
 const PaginationContent = React.forwardRef(({ className, ...props }, ref) => (
   <ul
     ref={ref}
-    className={cn("flex flex-row items-center gap-1.5", className)}
+    className={cn("flex flex-row items-center gap-1", className)}
     {...props}
   />
 ))
@@ -347,12 +538,12 @@ const PaginationLink = ({
   <button
     type="button"
     aria-current={isActive ? "page" : undefined}
-    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+    onClick={props.onClick}
     className={cn(
-      "flex h-9 w-9 items-center justify-center rounded-md text-sm font-medium transition-all",
+      "inline-flex h-9 w-9 items-center justify-center rounded-md text-ui-semibold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950 disabled:pointer-events-none disabled:opacity-50",
       isActive
-        ? "bg-slate-900 text-white shadow-sm"
-        : "bg-transparent text-slate-600 hover:bg-slate-200/60 hover:text-slate-950",
+        ? "bg-slate-900 text-white shadow hover:bg-slate-900/90"
+        : "border border-slate-200 bg-white hover:bg-slate-100 hover:text-slate-900",
       className
     )}
     {...props}
@@ -366,15 +557,15 @@ const PaginationPrevious = ({
   <button
     type="button"
     aria-label="Go to previous page"
-    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+    onClick={props.onClick}
     className={cn(
-      "flex h-9 items-center gap-1.5 px-3 rounded-md text-sm font-medium bg-transparent text-slate-950 hover:bg-slate-200/60 transition-all disabled:opacity-30 disabled:cursor-not-allowed",
+      "inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-ui-semibold transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950 disabled:pointer-events-none disabled:opacity-50",
       className
     )}
     {...props}
   >
-    <CaretLeft size={18} />
-    <span>Previous</span>
+    <CaretLeft size={16} />
+    <span className="hidden sm:inline">Previous</span>
   </button>
 )
 
@@ -385,15 +576,15 @@ const PaginationNext = ({
   <button
     type="button"
     aria-label="Go to next page"
-    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+    onClick={props.onClick}
     className={cn(
-      "flex h-9 items-center gap-1.5 px-3 rounded-md text-sm font-medium bg-transparent text-slate-950 hover:bg-slate-200/60 transition-all disabled:opacity-30 disabled:cursor-not-allowed",
+      "inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-ui-semibold transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950 disabled:pointer-events-none disabled:opacity-50",
       className
     )}
     {...props}
   >
-    <span>Next</span>
-    <CaretRight size={18} />
+    <span className="hidden sm:inline">Next</span>
+    <CaretRight size={16} />
   </button>
 )
 
@@ -403,7 +594,7 @@ const PaginationEllipsis = ({
 }) => (
   <span
     aria-hidden
-    className={cn("flex h-8 w-8 items-center justify-center text-slate-400", className)}
+    className={cn("flex h-9 w-9 items-center justify-center", className)}
     {...props}
   >
     <DotsThree size={18} weight="bold" />
@@ -411,25 +602,25 @@ const PaginationEllipsis = ({
   </span>
 )
 
-
-
 export function Pagination({ current, total, onChange }) {
   if (total <= 1) return null;
 
-  const pages = [];
-  for (let i = 1; i <= total; i++) {
-    if (i === 1 || i === total || (i >= current - 1 && i <= current + 1)) {
-      pages.push(i);
-    } else if (i === current - 2 || i === current + 2) {
-      pages.push("ellipsis");
-    }
-  }
+  const getPages = () => {
+    if (total <= 3) return Array.from({ length: total }, (_, i) => i + 1);
 
-  // Filter unique ellipsis
-  const uniquePages = pages.filter((v, i, a) => v !== "ellipsis" || a[i - 1] !== "ellipsis");
+    if (current <= 2) {
+      return [1, 2, "ellipsis", total];
+    }
+
+    if (current >= total - 1) {
+      return [1, "ellipsis", total - 1, total];
+    }
+
+    return [1, "ellipsis", current, "ellipsis", total];
+  };
 
   return (
-    <PaginationRoot className="py-4">
+    <PaginationRoot className="py-6 border-t border-slate-100 mt-4">
       <PaginationContent>
         <PaginationItem>
           <PaginationPrevious 
@@ -438,7 +629,7 @@ export function Pagination({ current, total, onChange }) {
           />
         </PaginationItem>
 
-        {uniquePages.map((p, idx) => (
+        {getPages().map((p, idx) => (
           <PaginationItem key={idx}>
             {p === "ellipsis" ? (
               <PaginationEllipsis />
@@ -510,7 +701,7 @@ export function TableDropdown({ options }) {
           e.stopPropagation();
           setOpen(!open);
         }}
-        className="flex items-center justify-center p-1.5 rounded-md hover:bg-slate-100 text-slate-500 transition-colors focus:outline-none"
+        className="flex items-center justify-center p-1.5 rounded-md hover:bg-slate-100 text-slate-600 transition-colors focus:outline-none"
       >
         <DotsThree size={22} weight="bold" />
       </button>
@@ -541,7 +732,7 @@ export function TableDropdown({ options }) {
                       setOpen(false);
                     }}
                     className={cn(
-                      "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-[13px] font-semibold transition-colors duration-75",
+                      "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-ui-semibold transition-colors duration-75",
                       opt.danger
                         ? "text-red-600 hover:bg-red-50"
                         : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
@@ -586,6 +777,171 @@ export function ViewToggle({ mode, onChange }) {
       >
         <GridFour size={20} weight={mode === "grid" ? "bold" : "regular"} />
       </button>
+    </div>
+  );
+}
+
+export function Drawer({ open, onClose, title, children, width = "max-w-md" }) {
+  const scrollRef = useRef(null);
+  
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+      
+      // Initialize local Lenis for the drawer content
+      if (scrollRef.current) {
+        const lenis = new Lenis({
+          wrapper: scrollRef.current,
+          duration: 1.2,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+          smoothWheel: true,
+        });
+
+        function raf(time) {
+          lenis.raf(time);
+          requestAnimationFrame(raf);
+        }
+        requestAnimationFrame(raf);
+        
+        return () => {
+          lenis.destroy();
+          document.body.style.overflow = "unset";
+        };
+      }
+    } else {
+      document.body.style.overflow = "unset";
+    }
+  }, [open]);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-[2px]"
+          />
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className={cn(
+              "fixed inset-y-0 right-0 z-[70] w-full bg-white shadow-2xl flex flex-col border-l border-slate-200",
+              width
+            )}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+              <h2 className="text-h2 text-slate-900">{title}</h2>
+              <button
+                onClick={onClose}
+                className="rounded-md p-1.5 text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+              >
+                <X size={20} weight="bold" />
+              </button>
+            </div>
+            <div 
+              ref={scrollRef}
+              className="flex-1 overflow-y-auto custom-scrollbar"
+            >
+              {children}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+export function MiniChart({ data, type = "bar", color = "#3b82f6", height = 60 }) {
+  const max = Math.max(...data, 1);
+  return (
+    <div className="flex items-end gap-1 w-full" style={{ height: `${height}px` }}>
+      {data.map((val, i) => {
+        const h = (val / max) * 100;
+        return (
+          <motion.div
+            key={i}
+            initial={{ height: 0 }}
+            animate={{ height: `${h}%` }}
+            className="flex-1 rounded-sm"
+            style={{ backgroundColor: color }}
+            transition={{ delay: i * 0.05, duration: 0.5 }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+export function LineChart({ 
+  data = [], 
+  color = "#6366f1", 
+  height = 200,
+  prefix = "",
+  suffix = ""
+}) {
+  // Convert flat array to Recharts format
+  const chartData = data.map((val, i) => ({
+    name: i,
+    value: val
+  }));
+
+  if (!data || data.length < 2) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center border border-slate-100 bg-slate-50/30 rounded-2xl" style={{ height: `${height}px` }}>
+        <p className="text-ui text-slate-500 font-medium">No data available</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full" style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <defs>
+            <linearGradient id={`colorValue-${color.replace('#','')}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={color} stopOpacity={0.15}/>
+              <stop offset="95%" stopColor={color} stopOpacity={0.01}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+          <XAxis 
+            dataKey="name" 
+            hide 
+          />
+          <YAxis 
+            axisLine={false} 
+            tickLine={false} 
+            tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+            tickFormatter={(val) => `${prefix}${val}${suffix}`}
+          />
+          <Tooltip 
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                return (
+                  <div className="bg-slate-900 text-white px-3 py-1.5 rounded-lg shadow-xl border border-slate-800 text-xs font-bold">
+                    {prefix}{payload[0].value}{suffix}
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
+          <Area 
+            type="monotone" 
+            dataKey="value" 
+            stroke={color} 
+            strokeWidth={2.5}
+            fillOpacity={1} 
+            fill={`url(#colorValue-${color.replace('#','')})`} 
+            animationDuration={1500}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
 }

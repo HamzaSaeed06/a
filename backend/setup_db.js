@@ -10,13 +10,17 @@ async function runSetup() {
       port:     process.env.DB_PORT || 3306,
       user:     process.env.DB_USER,
       password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
       multipleStatements: true
     });
 
     console.log('✅ Connected to MySQL Server');
 
-    const sqlFile = path.join(__dirname, '..', 'database', 'auction_db_complete.sql');
-    const sqlContent = fs.readFileSync(sqlFile, 'utf8');
+    const sqlFile = path.join(__dirname, 'pre_test_backup.sql');
+    let sqlContent = fs.readFileSync(sqlFile, 'utf16le');
+    if (sqlContent.charCodeAt(0) === 0xFEFF) {
+      sqlContent = sqlContent.slice(1);
+    }
 
     console.log('⏳ Running full database setup...');
 

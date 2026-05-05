@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "./lib/auth";
 import { apiFetch } from "./lib/api";
-import { Spinner } from "./components/UI"; // I will ensure Spinner is clean later
+import { Spinner, Button, Input } from "./components/UI";
 
 import { toast } from "react-hot-toast";
 
@@ -15,7 +15,8 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.username || !form.password) {
+    const usernameTrimmed = form.username.trim();
+    if (!usernameTrimmed || !form.password) {
       toast.error("Please fill in both fields.");
       return;
     }
@@ -23,8 +24,9 @@ export default function LoginPage() {
     try {
       const data = await apiFetch("/auth/login", {
         method: "POST",
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, username: usernameTrimmed }),
       });
+      toast.success("Login successful! Redirecting...");
       login(data.token, data.user);
     } catch (err) {
       toast.error(err.message || "Invalid credentials.");
@@ -63,12 +65,11 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-small font-medium text-slate-700 mb-1.5" htmlFor="username">
-                Username
+                Email or Username
               </label>
-              <input
+              <Input
                 id="username"
-                className="input-field"
-                placeholder="Enter username"
+                placeholder="Enter email or username"
                 autoComplete="username"
                 value={form.username}
                 onChange={(e) => setForm((c) => ({ ...c, username: e.target.value }))}
@@ -79,10 +80,9 @@ export default function LoginPage() {
               <label className="block text-small font-medium text-slate-700 mb-1.5" htmlFor="password">
                 Password
               </label>
-              <input
+              <Input
                 id="password"
                 type="password"
-                className="input-field"
                 placeholder="••••••••"
                 autoComplete="current-password"
                 value={form.password}
@@ -90,13 +90,15 @@ export default function LoginPage() {
               />
             </div>
 
-            <button
+            <Button
               type="submit"
-              disabled={loading}
-              className="btn btn-primary w-full mt-2 py-3 text-base"
+              variant="primary"
+              loading={loading}
+              loadingText="Authenticating..."
+              className="w-full mt-2"
             >
-              {loading ? <Spinner size={20} /> : "Continue to Dashboard"}
-            </button>
+              Continue to Dashboard
+            </Button>
           </form>
         </div>
         

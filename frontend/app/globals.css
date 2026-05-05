@@ -27,7 +27,7 @@
   --bg-color: #f8fafc; /* Very light slate for base background */
   --surface-color: #ffffff; /* Pure white for cards/surfaces */
   --text-main: #0f172a;
-  --text-muted: #64748b;
+  --text-muted: #3b516f;
   --border-color: #e2e8f0;
 }
 
@@ -107,220 +107,7 @@ button, input, select, textarea {
   box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.06);
 }
 
-/* Minimalist Button System */
-.btn,
-.btn-primary,
-.btn-outline,
-.btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border-radius: var(--radius-md);
-  height: 40px !important; /* Force 40px height */
-  padding: 0 20px !important;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-  white-space: nowrap;
-  border: 1px solid transparent;
-}
 
-.btn-primary {
-  background-color: var(--text-main);
-  color: white;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: #334155;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.12);
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-outline {
-  background-color: transparent;
-  color: var(--text-main);
-  border-color: var(--border-color);
-}
-
-.btn-outline:hover:not(:disabled) {
-  background-color: #f1f5f9;
-  border-color: #cbd5e1;
-}
-
-.btn-ghost {
-  background-color: transparent;
-  color: var(--text-muted);
-  padding: 0.375rem 0.625rem;
-}
-
-.btn-ghost:hover:not(:disabled) {
-  background-color: #f1f5f9;
-  color: var(--text-main);
-}
-
-/* Minimalist Input System */
-.input-field,
-.input,
-.select {
-  width: 100%;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  background-color: #ffffff;
-  height: 40px !important; /* Force 40px height */
-  padding: 0 12px !important;
-  font-size: 0.875rem;
-  color: var(--text-main);
-  outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  appearance: none;
-  -webkit-appearance: none;
-}
-
-.input-search {
-  padding-left: 40px !important; /* Ensure space for icon */
-}
-
-.input-field::placeholder,
-.input::placeholder {
-  color: #94a3b8;
-}
-
-.input-field:focus,
-.input:focus,
-.select:focus {
-  border-color: #94a3b8;
-  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.15);
-}
-
-/* Typography Hierarchy */
-.text-display {
-  font-size: clamp(2.5rem, 5vw, 4rem);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1.1;
-  color: var(--text-main);
-}
-
-.text-h1 {
-  font-size: clamp(1.875rem, 3vw, 2.25rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.2;
-  color: var(--text-main);
-}
-
-.text-h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--text-main);
-}
-
-.text-h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--text-main);
-}
-
-.text-body {
-  font-size: 1rem;
-  line-height: 1.6;
-  color: var(--text-muted);
-}
-
-.text-small {
-  font-size: 0.875rem;
-  color: var(--text-muted);
-}
-
-/* Base Tables for Auto-styling remaining pages */
-.table-wrap {
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-thead th {
-  padding: 0.75rem 1.5rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: none !important;
-  color: var(--text-muted);
-  border-bottom: 1px solid var(--border-color);
-  background-color: #f8fafc;
-}
-
-tbody td {
-  padding: 0.625rem 1.5rem;
-  font-size: 0.875rem;
-  border-bottom: 1px solid var(--border-color);
-  vertical-align: middle;
-  color: var(--text-main);
-  height: 48px; /* Standardize row height to be more compact */
-}
-
-tbody tr {
-  transition: background-color 0.15s ease;
-}
-
-tbody tr:hover {
-  background-color: #f8fafc;
-}
-
-/* Uniform Table Borders */
-tbody tr td {
-  border-bottom: 1px solid var(--border-color);
-}
-
-/* Legacy Badge Support for untouched pages */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.625rem;
-  border-radius: 0.375rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.025em;
-  color: var(--text-muted);
-  text-transform: capitalize;
-}
-
-.badge-success {
-  background-color: #d1fae5;
-  color: #047857;
-  border: 1px solid #a7f3d0;
-}
-
-.badge-danger {
-  background-color: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
-}
-
-.badge-neutral {
-  background-color: #f1f5f9;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-}
-
-.badge-gold {
-  background-color: #fef3c7;
-  color: #b45309;
-  border: 1px solid #fde68a;
-}
 
 /* Micro-animations */
 @keyframes pulse-soft {
@@ -342,6 +129,60 @@ tbody tr td {
   display: none;
 }
 
+/* Typography System */
+.text-ui {
+  font-size: 0.8125rem; /* 13px - Professional & Compact */
+  line-height: 1.25rem;
+  letter-spacing: -0.01em;
+}
+
+.text-ui-semibold {
+  font-size: 0.8125rem; /* 13px */
+  line-height: 1.25rem;
+  font-weight: 600;
+}
+
+.text-sub {
+  font-size: 0.75rem; /* 12px - Subtle but bold */
+  line-height: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+}
+
+.text-ui-xs {
+  font-size: 0.6875rem; /* 11px - For very small labels */
+  line-height: 1rem;
+}
+
+.text-h1 {
+  font-size: 1.875rem; /* 30px */
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
+.text-h2 {
+  font-size: 1.25rem; /* 20px */
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.text-h3 {
+  font-size: 1.0625rem; /* 17px */
+  font-weight: 500;
+}
+
+.text-sub {
+  font-size: 0.75rem; /* 12px */
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: capitalize;
+}
+
+.text-ui {
+  font-size: 0.8125rem; /* 13px */
+  line-height: 1.25rem;
+}
+
 .country-flag {
   width: 16px;
   height: 11px;
@@ -350,7 +191,7 @@ tbody tr td {
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   display: inline-block;
   vertical-align: middle;
-  margin-right: 8px;
+  margin-right: 4px;
 }
 
 /* Custom Scrollbars */
@@ -379,4 +220,27 @@ tbody tr td {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+  scroll-behavior: smooth;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 20px;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
 }

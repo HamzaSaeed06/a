@@ -16,6 +16,15 @@ import {
   TableDropdown,
   Toast,
   useToast,
+  Button,
+  Input,
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+  Badge,
 } from "../../components/UI";
 import { apiFetch } from "../../lib/api";
 
@@ -28,11 +37,16 @@ export default function CountriesPage() {
   const [editItem, setEditItem] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [page, setPage] = useState(1);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { toasts, toast, removeToast } = useToast();
   
   const PAGE_SIZE = 7;
 
-  const fetchItems = () => apiFetch("/super-admin/countries").then(setItems).catch(() => {});
+  const fetchItems = () => 
+    apiFetch("/super-admin/countries")
+      .then(setItems)
+      .catch((err) => toast("Failed to load country data: " + err.message, "error"));
 
   useEffect(() => {
     fetchItems();
@@ -100,34 +114,42 @@ export default function CountriesPage() {
   };
 
   const save = async () => {
+    if (!form.country_name) return toast("Country name is required.", "error");
+    setSaving(true);
     try {
       if (editItem) {
         await apiFetch(`/super-admin/countries/${editItem.country_id}`, {
           method: "PUT",
           body: JSON.stringify(form),
         });
-        toast("Country updated.", "success");
+        toast("Country updated successfully.", "success");
       } else {
         await apiFetch("/super-admin/countries", {
           method: "POST",
           body: JSON.stringify(form),
         });
-        toast("Country added.", "success");
+        toast("New country added successfully.", "success");
       }
       setModal(false);
       fetchItems();
     } catch (error) {
-      toast(error.message, "error");
+      toast(error.message || "Failed to save country details.", "error");
+    } finally {
+      setSaving(false);
     }
   };
 
   const remove = async (id) => {
+    setDeleting(true);
     try {
       await apiFetch(`/super-admin/countries/${id}`, { method: "DELETE" });
-      toast("Country deleted.", "success");
+      toast("Country record removed successfully.", "success");
+      setConfirm(null);
       fetchItems();
     } catch (error) {
-      toast(error.message, "error");
+      toast(error.message || "Failed to remove the country record.", "error");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -142,71 +164,69 @@ export default function CountriesPage() {
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search by country name or code"
         />
-        <button className="btn-primary shrink-0" onClick={openAdd}>
+        <Button variant="primary" className="shrink-0" onClick={openAdd}>
           <Plus size={18} />
           Add Country
-        </button>
+        </Button>
       </div>
 
-      <SectionCard padded={false}>
+      <SectionCard padded={false} fullHeight={true}>
         {items.length ? (
           <>
-            <div className="overflow-auto h-[calc(100vh-200px)] relative border-t border-slate-100 no-scrollbar">
-              <table className="w-full border-collapse">
-                <thead className="sticky top-0 z-10 bg-white border-b border-slate-200">
-                  <tr>
-                    <th>S.No</th>
-                    <th>Country</th>
-                    <th>ISO Code</th>
-                    <th>Dial Code</th>
-                    <th className="w-16">Options</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginated.map((item, index) => (
-                    <tr key={item.country_id} className="border-b border-slate-200 hover:bg-slate-50/50 transition-colors">
-                      <td>{(page - 1) * PAGE_SIZE + index + 1}</td>
-                      <td className="font-semibold text-slate-950">
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex h-5 w-8 shrink-0 items-center justify-center overflow-hidden rounded bg-slate-50 border border-slate-200/60 shadow-sm">
-                            {item.country_code ? (
-                              <img
-                                src={
-                                  countriesData.find(c => c.code.toLowerCase() === item.country_code.toLowerCase())?.flagUrl 
-                                  || `https://flagcdn.com/${item.country_code.toLowerCase()}.svg`
-                                }
-                                alt=""
-                                className="h-full w-full object-contain"
-                                onError={(e) => { 
-                                  e.target.style.display = 'none'; 
-                                  e.target.nextSibling.style.display = 'block'; 
-                                }}
-                              />
-                            ) : null}
-                            <GlobeHemisphereWest size={12} className="text-slate-400 hidden" />
-                          </div>
-                          {item.country_name}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>S.No</TableHead>
+                  <TableHead>Country</TableHead>
+                  <TableHead>ISO Code</TableHead>
+                  <TableHead>Dial Code</TableHead>
+                  <TableHead className="w-16">Options</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginated.map((item, index) => (
+                  <TableRow key={item.country_id}>
+                    <TableCell>{(page - 1) * PAGE_SIZE + index + 1}</TableCell>
+                    <TableCell className="font-semibold text-slate-950">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-5 w-8 shrink-0 items-center justify-center overflow-hidden rounded bg-slate-50 border border-slate-200/60 shadow-sm">
+                          {item.country_code ? (
+                            <img
+                              src={
+                                countriesData.find(c => c.code.toLowerCase() === item.country_code.toLowerCase())?.flagUrl 
+                                || `https://flagcdn.com/${item.country_code.toLowerCase()}.svg`
+                              }
+                              alt=""
+                              className="h-full w-full object-contain"
+                              onError={(e) => { 
+                                e.target.style.display = 'none'; 
+                                e.target.nextSibling.style.display = 'block'; 
+                              }}
+                            />
+                          ) : null}
+                          <GlobeHemisphereWest size={12} className="text-slate-400 hidden" />
                         </div>
-                      </td>
-                      <td>
-                        <span className="badge badge-neutral">{item.country_code || "—"}</span>
-                      </td>
-                      <td className="text-sm font-medium text-slate-500">
-                        {item.dial_code || "—"}
-                      </td>
-                      <td>
-                        <TableDropdown
-                          options={[
-                            { label: "Edit", icon: PencilSimple, onClick: () => openEdit(item) },
-                            { label: "Delete", icon: Trash, danger: true, onClick: () => setConfirm(item.country_id) }
-                          ]}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        {item.country_name}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="neutral">{item.country_code || "—"}</Badge>
+                    </TableCell>
+                    <TableCell className="text-slate-500">
+                      {item.dial_code || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <TableDropdown
+                        options={[
+                          { label: "Edit", icon: PencilSimple, onClick: () => openEdit(item) },
+                          { label: "Delete", icon: Trash, danger: true, onClick: () => setConfirm(item.country_id) }
+                        ]}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </>
         ) : (
           <EmptyState
@@ -224,8 +244,7 @@ export default function CountriesPage() {
         <div className="grid gap-4">
           <div className="relative">
             <Field label="Country Name" icon={GlobeHemisphereWest}>
-              <input 
-                className="input" 
+              <Input 
                 placeholder="Start typing country name..." 
                 value={form.country_name} 
                 onChange={(e) => handleCountryNameChange(e.target.value)} 
@@ -262,8 +281,7 @@ export default function CountriesPage() {
           
           <div className="grid grid-cols-2 gap-4">
             <Field label="ISO Code" icon={Hash}>
-              <input 
-                className="input" 
+              <Input 
                 placeholder="e.g. PK" 
                 maxLength={5} 
                 value={form.country_code} 
@@ -271,8 +289,7 @@ export default function CountriesPage() {
               />
             </Field>
             <Field label="Dial Code" icon={Phone}>
-              <input 
-                className="input" 
+              <Input 
                 placeholder="e.g. +92" 
                 value={form.dial_code} 
                 onChange={(event) => {
@@ -286,12 +303,17 @@ export default function CountriesPage() {
         </div>
 
         <div className="mt-6 flex justify-end gap-3">
-          <button className="btn-outline" onClick={() => setModal(false)}>
+          <Button variant="outline" onClick={() => setModal(false)}>
             Cancel
-          </button>
-          <button className="btn-primary" onClick={save}>
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={save}
+            loading={saving}
+            loadingText="Saving Details..."
+          >
             Save Country
-          </button>
+          </Button>
         </div>
       </Modal>
 
@@ -302,6 +324,7 @@ export default function CountriesPage() {
         title="Delete Country"
         message="This permanently removes the country record."
         danger
+        loading={deleting}
       />
     </DashboardLayout>
   );

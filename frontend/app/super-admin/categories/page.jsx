@@ -13,8 +13,17 @@ import {
   Select,
   SectionCard,
   TableDropdown,
+  Pagination,
   Toast,
   useToast,
+  Button,
+  Input,
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
 } from "../../components/UI";
 import { formatCurrency } from "../../lib/format";
 import { apiFetch } from "../../lib/api";
@@ -26,15 +35,24 @@ export default function CategoriesPage() {
   const [form, setForm] = useState({ category_name: "", description: "", base_price: "" });
   const [editItem, setEditItem] = useState(null);
   const [confirm, setConfirm] = useState(null);
+  const [page, setPage] = useState(1);
+  const [saving, setSaving] = useState(false);
   const { toasts, toast, removeToast } = useToast();
-
+  const PAGE_SIZE = 8;
   const SUGGESTIONS = ["Platinum", "Diamond", "Gold", "Silver", "Emerging", "Supplementary"];
 
-  const fetchItems = () => apiFetch("/super-admin/categories").then(setItems).catch(() => {});
+  const fetchItems = () => 
+    apiFetch("/super-admin/categories")
+      .then(setItems)
+      .catch((err) => toast("Failed to fetch categories: " + err.message, "error"));
 
   useEffect(() => {
     fetchItems();
   }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   const filtered = items.filter((item) =>
     [item.category_name, item.description]
@@ -43,6 +61,9 @@ export default function CategoriesPage() {
       .toLowerCase()
       .includes(search.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const openAdd = () => {
     setEditItem(null);
@@ -61,34 +82,38 @@ export default function CategoriesPage() {
   };
 
   const save = async () => {
+    if (!form.category_name) return toast("Category name is required.", "error");
+    setSaving(true);
     try {
       if (editItem) {
         await apiFetch(`/super-admin/categories/${editItem.category_id}`, {
           method: "PUT",
           body: JSON.stringify(form),
         });
-        toast("Category updated.", "success");
+        toast("Category updated successfully.", "success");
       } else {
         await apiFetch("/super-admin/categories", {
           method: "POST",
           body: JSON.stringify(form),
         });
-        toast("Category created.", "success");
+        toast("New category created successfully.", "success");
       }
       setModal(false);
       fetchItems();
     } catch (error) {
-      toast(error.message, "error");
+      toast(error.message || "Failed to save category details.", "error");
+    } finally {
+      setSaving(false);
     }
   };
 
   const remove = async (id) => {
     try {
       await apiFetch(`/super-admin/categories/${id}`, { method: "DELETE" });
-      toast("Category deleted.", "success");
+      toast("Category removed successfully.", "success");
       fetchItems();
     } catch (error) {
-      toast(error.message, "error");
+      toast(error.message || "Failed to remove the category.", "error");
     }
   };
 
@@ -103,45 +128,48 @@ export default function CategoriesPage() {
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search by category name..."
         />
-        <button className="btn-primary shrink-0" onClick={openAdd}>
+        <Button variant="primary" className="shrink-0" onClick={openAdd}>
           <Plus size={18} />
           Add Category
-        </button>
+        </Button>
       </div>
 
-      <SectionCard padded={false}>
+      <SectionCard padded={false} fullHeight={true}>
         {items.length ? (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                  <tr>
-                    <th>S.No</th>
-                    <th>Category Name</th>
-                    <th>Base Price</th>
-                    <th>Description</th>
-                    <th className="w-16">Options</th>
-                  </tr>
-              </thead>
-              <tbody>
-                {filtered.map((item, index) => (
-                  <tr key={item.category_id}>
-                    <td>{index + 1}</td>
-                    <td className="font-semibold text-slate-950">{item.category_name}</td>
-                    <td className="font-bold text-slate-900">{formatCurrency(item.base_price)}</td>
-                    <td className="text-slate-500">{item.description || "—"}</td>
-                    <td>
+          <>
+            <Table>
+              <TableHeader>
+                  <TableRow>
+                    <TableHead>S.No</TableHead>
+                    <TableHead>Category Name</TableHead>
+                    <TableHead>Base Price</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="w-16">Options</TableHead>
+                  </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginated.map((item, index) => (
+                  <TableRow key={item.category_id}>
+                    <TableCell>{(page - 1) * PAGE_SIZE + index + 1}</TableCell>
+                    <TableCell className="font-semibold text-slate-950">{item.category_name}</TableCell>
+                    <TableCell className="font-bold text-slate-900">{formatCurrency(item.base_price)}</TableCell>
+                    <TableCell className="text-slate-500">{item.description || "—"}</TableCell>
+                    <TableCell>
                       <TableDropdown
                         options={[
                           { label: "Edit", icon: PencilSimple, onClick: () => openEdit(item) },
                           { label: "Delete", icon: Trash, danger: true, onClick: () => setConfirm(item.category_id) }
                         ]}
                       />
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+            <div className="px-6">
+              <Pagination current={page} total={totalPages} onChange={setPage} />
+            </div>
+          </>
         ) : (
           <EmptyState
             icon={Stack}
@@ -166,19 +194,17 @@ export default function CategoriesPage() {
           </Field>
           {form.category_name === "Custom" && (
             <Field label="Custom Category Name" icon={Tag}>
-              <input 
-                className="input" 
+              <Input 
                 placeholder="Enter custom category name" 
                 onChange={(event) => setForm((current) => ({ ...current, category_name: event.target.value }))} 
               />
             </Field>
           )}
           <Field label="Description" icon={TextAlignLeft}>
-            <input className="input" placeholder="Short description of the category" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
+            <Input placeholder="Short description of the category" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
           </Field>
           <Field label="Default Base Price" icon={Money}>
-            <input 
-              className="input" 
+            <Input 
               type="number" 
               placeholder="e.g. 2000000" 
               value={form.base_price} 
@@ -188,12 +214,17 @@ export default function CategoriesPage() {
         </div>
 
         <div className="mt-6 flex justify-end gap-3">
-          <button className="btn-outline" onClick={() => setModal(false)}>
+          <Button variant="outline" onClick={() => setModal(false)}>
             Cancel
-          </button>
-          <button className="btn-primary" onClick={save}>
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={save}
+            loading={saving}
+            loadingText="Saving Details..."
+          >
             Save Category
-          </button>
+          </Button>
         </div>
       </Modal>
 

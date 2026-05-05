@@ -13,9 +13,19 @@ import {
   Select,
   SectionCard,
   TableDropdown,
-  Toast,
   ViewToggle,
+  Pagination,
+  Toast,
   useToast,
+  Button,
+  Input,
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+  RoleBadge,
 } from "../../components/UI";
 import { UserCircle } from "@phosphor-icons/react";
 import { apiFetch } from "../../lib/api";
@@ -30,13 +40,18 @@ export default function PoolPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState("table");
+  const [saving, setSaving] = useState(false);
   const { toasts, toast, removeToast } = useToast();
   
   const PAGE_SIZE = 7;
 
   const fetchPool = () => {
-    apiFetch("/admin/auction-pool").then(setPool).catch(() => {});
-    apiFetch("/admin/players").then(setAllPlayers).catch(() => {});
+    apiFetch("/admin/auction-pool")
+      .then(setPool)
+      .catch((err) => toast("Failed to load auction pool: " + err.message, "error"));
+    apiFetch("/admin/players")
+      .then(setAllPlayers)
+      .catch((err) => toast("Failed to load player list: " + err.message, "error"));
   };
 
   useEffect(() => {
@@ -45,7 +60,7 @@ export default function PoolPage() {
 
   const inPool = useMemo(() => new Set(pool.map((item) => String(item.player_id))), [pool]);
   const availablePlayers = useMemo(
-    () => allPlayers.filter((player) => !inPool.has(String(player.player_id))),
+    () => allPlayers.filter((player) => !inPool.has(String(player.player_id)) && player.status !== "sold"),
     [allPlayers, inPool],
   );
 
@@ -65,6 +80,8 @@ export default function PoolPage() {
   }, [search]);
 
   const addToPool = async () => {
+    if (!form.player_id) return toast("Please select a player to add.", "error");
+    setSaving(true);
     try {
       const auctions = await apiFetch("/super-admin/auctions");
       if (!auctions.length) {
@@ -77,21 +94,23 @@ export default function PoolPage() {
           auction_id: auctions[0].auction_id,
         }),
       });
-      toast("Player added to pool.", "success");
+      toast("Player successfully added to the auction pool.", "success");
       setModal(false);
       fetchPool();
     } catch (error) {
-      toast(error.message, "error");
+      toast(error.message || "Failed to add player to the pool.", "error");
+    } finally {
+      setSaving(false);
     }
   };
 
   const remove = async (id) => {
     try {
       await apiFetch(`/admin/auction-pool/${id}`, { method: "DELETE" });
-      toast("Player removed from pool.", "success");
+      toast("Player removed from the pool successfully.", "success");
       fetchPool();
     } catch (error) {
-      toast(error.message, "error");
+      toast(error.message || "Failed to remove player from the pool.", "error");
     }
   };
 
@@ -108,8 +127,9 @@ export default function PoolPage() {
         />
         <div className="flex items-center gap-3">
           <ViewToggle mode={viewMode} onChange={setViewMode} />
-          <button
-            className="btn-primary shrink-0"
+          <Button
+            variant="primary"
+            className="shrink-0"
             onClick={() => {
               setForm({ player_id: availablePlayers[0]?.player_id || "" });
               setModal(true);
@@ -117,71 +137,83 @@ export default function PoolPage() {
           >
             <Plus size={18} />
             Add Player
-          </button>
+          </Button>
         </div>
       </div>
 
       <div className="mt-6">
-        <SectionCard padded={false}>
+        <SectionCard padded={false} fullHeight={true}>
           {filtered.length ? (
-            <div className="overflow-auto h-[calc(100vh-200px)] relative border-t border-slate-100 no-scrollbar">
+            <>
               {viewMode === "table" ? (
-                  <table className="w-full border-collapse">
-                    <thead className="sticky top-0 z-10 bg-white border-b border-slate-200">
-                      <tr>
-                        <th>Lot</th>
-                        <th>Player</th>
-                        <th>Role</th>
-                        <th>Base Price</th>
-                        <th>Status</th>
-                        <th className="w-16">Options</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Lot</TableHead>
+                        <TableHead>Player</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Base Price</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="w-16">Options</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {paginated.map((item) => (
-                        <tr key={item.player_id} className="border-b border-slate-200 hover:bg-slate-50/50 transition-colors">
-                          <td className="font-bold text-slate-400">#{item.lot_number}</td>
-                          <td className="font-semibold text-slate-950">
-                            <div className="flex items-center gap-2">
-                              {item.country_code && (
-                                <img
-                                  src={`https://flagcdn.com/w40/${item.country_code.toLowerCase()}.png`}
-                                  alt=""
-                                  className="country-flag"
-                                />
-                              )}
-                              {item.name}
+                        <TableRow key={item.player_id}>
+                          <TableCell className="font-bold text-slate-400">#{item.lot_number}</TableCell>
+                          <TableCell className="font-semibold text-slate-950">
+                            <div className="flex items-center gap-3">
+                               <div className={cn("h-9 w-9 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold border border-slate-100 shadow-sm overflow-hidden", !item.image_url && "bg-slate-900 text-white")}>
+                                  {item.image_url ? (
+                                    <img src={item.image_url} alt="" className="w-full h-full object-contain" />
+                                  ) : (
+                                    item.name?.substring(0, 2).toUpperCase()
+                                  )}
+                               </div>
+                               <div className="flex items-center gap-2">
+                                 {item.country_code && (
+                                   <img
+                                     src={`https://flagcdn.com/w40/${item.country_code.toLowerCase()}.png`}
+                                     alt=""
+                                     className="country-flag"
+                                   />
+                                 )}
+                                 {item.name}
+                               </div>
                             </div>
-                          </td>
-                          <td className="text-slate-500">{item.role || "-"}</td>
-                          <td className="font-bold text-slate-900">{formatCurrency(item.base_price)}</td>
-                          <td>
-                            <span className={`badge gap-1.5 ${item.status === "active" ? "badge-accent" : item.status === "processed" ? "badge-neutral" : "badge-success"}`}>
+                          </TableCell>
+                          <TableCell>
+                            <RoleBadge role={item.role} />
+                          </TableCell>
+                          <TableCell className="font-bold text-slate-900">{formatCurrency(item.base_price)}</TableCell>
+                          <TableCell>
+                            <span className={`badge flex items-center gap-1.5 ${item.status === "active" ? "badge-accent" : item.status === "processed" ? "badge-neutral" : "badge-success"}`}>
                               {item.status === "active" ? <Clock size={14} weight="bold" /> : item.status === "processed" ? <Prohibit size={14} weight="bold" /> : <CheckCircle size={14} weight="bold" />}
-                              {item.status}
+                              <span className="capitalize">{item.status}</span>
                             </span>
-                          </td>
-                          <td>
+                          </TableCell>
+                          <TableCell>
                             <TableDropdown
                               options={[
                                 { label: "Remove", icon: Trash, danger: true, onClick: () => setConfirm(item.pool_id) }
                               ]}
                             />
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                </table>
+                    </TableBody>
+                </Table>
               ) : (
-                <div className="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3 bg-slate-50/50">
+                <div className="overflow-auto relative border-t border-slate-100 no-scrollbar">
+                  <div className="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3 bg-slate-50/50">
                     {paginated.map((item) => (
                       <div key={item.pool_id} className="surface group hover:border-slate-900 transition-all duration-300">
                         <div className="p-4">
                           <div className="flex items-start justify-between mb-5">
                             <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 shrink-0 rounded-full bg-slate-950 text-white flex items-center justify-center overflow-hidden">
-                                 {item.image ? (
-                                   <img src={item.image} alt="" className="w-full h-full object-cover" />
+                              <div className={cn("h-12 w-12 shrink-0 rounded-full flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm", !item.image_url && "bg-slate-950 text-white")}>
+                                 {item.image_url ? (
+                                   <img src={item.image_url} alt="" className="w-full h-full object-contain" />
                                  ) : (
                                    <span className="text-sm font-bold">{item.name?.substring(0, 2).toUpperCase()}</span>
                                  )}
@@ -190,7 +222,7 @@ export default function PoolPage() {
                                 <h3 className="text-sm font-semibold text-slate-950 truncate leading-none mb-1">{item.name}</h3>
                                 <div className="flex items-center gap-1.5">
                                    <div className="h-1 w-1 rounded-full bg-slate-300" />
-                                   <p className="text-[10px] font-medium text-slate-400 capitalize">{item.role || "Role"}</p>
+                                   <RoleBadge role={item.role} />
                                 </div>
                               </div>
                             </div>
@@ -209,7 +241,7 @@ export default function PoolPage() {
                           </div>
 
                           <div className="mt-4 flex items-center justify-between">
-                             <div className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest", 
+                             <div className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-bold capitalize tracking-widest", 
                                item.status === "active" ? "bg-blue-50 text-blue-700" : 
                                item.status === "processed" ? "bg-slate-50 text-slate-500" : 
                                "bg-emerald-50 text-emerald-700"
@@ -233,8 +265,9 @@ export default function PoolPage() {
                       </div>
                     ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+          </>
           ) : (
             <EmptyState
               icon={ListChecks}
@@ -262,12 +295,17 @@ export default function PoolPage() {
         </Field>
 
         <div className="mt-6 flex justify-end gap-3">
-          <button className="btn-outline" onClick={() => setModal(false)}>
+          <Button variant="outline" onClick={() => setModal(false)}>
             Cancel
-          </button>
-          <button className="btn-primary" onClick={addToPool}>
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={addToPool}
+            loading={saving}
+            loadingText="Adding Player..."
+          >
             Add to Pool
-          </button>
+          </Button>
         </div>
       </Modal>
 

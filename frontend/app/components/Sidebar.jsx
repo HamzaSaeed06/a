@@ -1,9 +1,8 @@
-"use client";
-
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
+import Lenis from "lenis";
 import {
   ArrowsLeftRight,
   Broadcast,
@@ -18,6 +17,8 @@ import {
   Stack,
   UserList,
   UsersThree,
+  UserCircle,
+  Target,
 } from "@phosphor-icons/react";
 import { useAuth } from "../lib/auth";
 import { cn } from "../lib/format";
@@ -39,8 +40,11 @@ const ADMIN_LINKS = [
 ];
 
 const FRANCHISE_LINKS = [
-  { href: "/franchise", label: "Franchise Dashboard", icon: HouseLine },
+  { href: "/franchise",         label: "Dashboard",    icon: HouseLine },
+  { href: "/franchise/competitors", label: "War Room", icon: Target },
+  { href: "/franchise/pool",    label: "Auction Pool", icon: ListChecks },
   { href: "/franchise/live-auction", label: "Live Bidding", icon: ArrowsLeftRight },
+  { href: "/franchise/profile", label: "My Profile",   icon: UserCircle },
 ];
 
 function NavLink({ href, label, icon: Icon, active }) {
@@ -51,11 +55,11 @@ function NavLink({ href, label, icon: Icon, active }) {
           "relative flex items-center gap-3 rounded-md px-3 py-2 transition-all duration-150",
           active
             ? "bg-slate-100 text-slate-900 font-semibold"
-            : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
         )}
       >
         <Icon size={18} weight={active ? "fill" : "regular"} className="shrink-0" />
-        <span className="text-sm">{label}</span>
+        <span className="text-ui">{label}</span>
       </div>
     </Link>
   );
@@ -64,7 +68,7 @@ function NavLink({ href, label, icon: Icon, active }) {
 function NavGroup({ title, links, pathname }) {
   return (
     <div className="flex flex-col gap-1">
-      <p className="mb-2 px-3 text-[0.7rem] font-medium text-slate-400">
+      <p className="mb-2 px-3 text-sub text-slate-900">
         {title}
       </p>
       {links.map(({ href, label, icon }) => {
@@ -100,6 +104,32 @@ export default function Sidebar() {
     return [{ title: "Franchise", links: FRANCHISE_LINKS }];
   }, [user?.role]);
 
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    if (!scrollRef.current) return;
+    
+    const lenis = new Lenis({
+      wrapper: scrollRef.current,
+      content: scrollRef.current.querySelector('.sidebar-content'),
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
+      smoothWheel: true,
+      wheelMultiplier: 1,
+      lerp: 0.1,
+    });
+
+    function raf(time) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+
+    return () => lenis.destroy();
+  }, []);
+
   const roleColor =
     user?.role === "Super Admin"
       ? "text-purple-700 bg-purple-50 border-purple-200"
@@ -115,10 +145,10 @@ export default function Sidebar() {
             <ShieldCheck size={20} weight="fill" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold tracking-tight text-slate-900 truncate">
+            <p className="text-ui font-bold tracking-tight text-slate-900 truncate">
               Auction OS
             </p>
-            <p className="text-[0.65rem] text-slate-500">
+            <p className="text-ui-xs font-medium text-slate-600 capitalize tracking-tighter">
               Command Layer
             </p>
           </div>
@@ -126,15 +156,21 @@ export default function Sidebar() {
       </div>
 
 
-      <div data-lenis-prevent className="flex-1 overflow-y-auto px-4 py-4 space-y-8 scrollbar-hide">
-        {groups.map((group) => (
-          <NavGroup
-            key={group.title}
-            title={group.title}
-            links={group.links}
-            pathname={pathname}
-          />
-        ))}
+      <div 
+        ref={scrollRef}
+        data-lenis-prevent 
+        className="flex-1 overflow-y-auto no-scrollbar"
+      >
+        <div className="sidebar-content px-4 py-4 space-y-8">
+          {groups.map((group) => (
+            <NavGroup
+              key={group.title}
+              title={group.title}
+              links={group.links}
+              pathname={pathname}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Bottom User Card */}
@@ -158,10 +194,10 @@ function UserMenu({ user, logout }) {
       <div className="flex items-center gap-3 rounded-md px-3 py-2">
         {/* Name left */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-slate-900 truncate">
+          <p className="text-ui-semibold text-slate-900 truncate">
             {user?.username || "User"}
           </p>
-          <p className="text-[0.6rem] font-medium text-slate-400 truncate mt-0.5">
+          <p className="text-ui-xs font-medium text-slate-500 truncate mt-0.5">
             {user?.role || ""}
           </p>
         </div>
@@ -190,7 +226,7 @@ function UserMenu({ user, logout }) {
             >
               <button
                 onClick={() => { setOpen(false); logout(); }}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition"
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-ui-semibold text-red-600 hover:bg-red-50 transition"
               >
                 <SignOut size={15} />
                 Sign out
