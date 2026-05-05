@@ -16,7 +16,8 @@ import {
   ChartLineUp,
 } from "@phosphor-icons/react";
 import DashboardLayout from "../components/DashboardLayout";
-import { PageHeader, SectionCard, StatCard, LineChart } from "../components/UI";
+import { PageHeader, SectionCard, StatCard, LineChart, Button, ConfirmModal, useToast } from "../components/UI";
+import { ArrowsCounterClockwise } from "@phosphor-icons/react";
 import { apiFetch } from "../lib/api";
 
 export default function SuperAdminPage() {
@@ -25,73 +26,90 @@ export default function SuperAdminPage() {
   const [categoryData, setCategoryData] = useState([]);
   const [activityData, setActivityData] = useState([]);
   const [recentLogs, setRecentLogs] = useState([]);
+  const [isResetting, setIsResetting] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const { toast } = useToast();
+
+  const fetchData = async () => {
+    try {
+      const [pStats, aStats, teams, players, logs, auctions] = await Promise.all([
+        apiFetch("/super-admin/overview-stats"),
+        apiFetch("/admin/dashboard-stats"),
+        apiFetch("/admin/teams"),
+        apiFetch("/admin/players"),
+        apiFetch("/admin/auction-log"),
+        apiFetch("/super-admin/auctions")
+      ]);
+
+      setStats({ ...pStats, ...aStats });
+      setRecentLogs(logs.slice(0, 8));
+
+      // Process Budget
+      const totalBudget = teams.reduce((acc, t) => acc + Number(t.total_budget), 0);
+      const remainingBudget = teams.reduce((acc, t) => acc + Number(t.remaining_budget), 0);
+      const spent = totalBudget - remainingBudget;
+      setBudgetData({ 
+        total: totalBudget, 
+        spent, 
+        chart: teams.map(t => Math.round((t.total_budget - t.remaining_budget) / 10000000)) 
+      });
+
+      // Process Categories
+      const allCategories = ["Platinum", "Diamond", "Gold", "Silver", "Emerging"];
+      const catMap = {};
+      allCategories.forEach(c => catMap[c] = 0);
+      
+      players.forEach(p => {
+        const name = p.category_name;
+        if (catMap.hasOwnProperty(name)) {
+          catMap[name]++;
+        }
+      });
+      
+      const catArray = allCategories.map(name => ({
+        label: name,
+        count: catMap[name],
+        val: (catMap[name] / (players.length || 1)) * 100,
+        color: name === "Platinum" ? "bg-slate-900" : 
+               name === "Diamond" ? "bg-blue-600" : 
+               name === "Gold" ? "bg-amber-500" :
+               name === "Silver" ? "bg-slate-400" : "bg-emerald-500"
+      }));
+      setCategoryData(catArray);
+
+      // Process Activity
+      const seasonActivity = auctions.map(auction => {
+        const logsInSeason = logs.filter(l => l.auction_id === auction.auction_id).length;
+        return {
+          label: `S${auction.season}`,
+          count: logsInSeason
+        };
+      }).reverse();
+      
+      setActivityData(seasonActivity);
+
+    } catch (err) {
+      console.error("Failed to fetch dashboard data:", err);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [pStats, aStats, teams, players, logs, auctions] = await Promise.all([
-          apiFetch("/super-admin/overview-stats"),
-          apiFetch("/admin/dashboard-stats"),
-          apiFetch("/admin/teams"),
-          apiFetch("/admin/players"),
-          apiFetch("/admin/auction-log"),
-          apiFetch("/super-admin/auctions")
-        ]);
-
-        setStats({ ...pStats, ...aStats });
-        setRecentLogs(logs.slice(0, 8));
-
-        // Process Budget
-        const totalBudget = teams.reduce((acc, t) => acc + Number(t.total_budget), 0);
-        const remainingBudget = teams.reduce((acc, t) => acc + Number(t.remaining_budget), 0);
-        const spent = totalBudget - remainingBudget;
-        setBudgetData({ 
-          total: totalBudget, 
-          spent, 
-          chart: teams.map(t => Math.round((t.total_budget - t.remaining_budget) / 10000000)) 
-        });
-
-        // Process Categories (Fixed set to ensure 0s show up)
-        const allCategories = ["Platinum", "Diamond", "Gold", "Silver", "Emerging"];
-        const catMap = {};
-        allCategories.forEach(c => catMap[c] = 0);
-        
-        players.forEach(p => {
-          const name = p.category_name;
-          if (catMap.hasOwnProperty(name)) {
-            catMap[name]++;
-          }
-        });
-        
-        const catArray = allCategories.map(name => ({
-          label: name,
-          count: catMap[name],
-          val: (catMap[name] / (players.length || 1)) * 100,
-          color: name === "Platinum" ? "bg-slate-900" : 
-                 name === "Diamond" ? "bg-blue-600" : 
-                 name === "Gold" ? "bg-amber-500" :
-                 name === "Silver" ? "bg-slate-400" : "bg-emerald-500"
-        }));
-        setCategoryData(catArray);
-
-        // Process Activity (Season-wise)
-        const seasonActivity = auctions.map(auction => {
-          const logsInSeason = logs.filter(l => l.auction_id === auction.auction_id).length;
-          return {
-            label: `S${auction.season}`,
-            count: logsInSeason
-          };
-        }).reverse();
-        
-        setActivityData(seasonActivity);
-
-      } catch (err) {
-        console.error("Failed to fetch dashboard data:", err);
-      }
-    };
-
     fetchData();
   }, []);
+
+  const handleResetAuction = async () => {
+    setIsResetting(true);
+    try {
+      await apiFetch("/admin/reset-auction", { method: "POST" });
+      toast("Auction database reset successfully", "success");
+      await fetchData();
+    } catch (err) {
+      toast(err.message || "Failed to reset auction", "error");
+    } finally {
+      setIsResetting(false);
+      setShowResetConfirm(false);
+    }
+  };
 
   const formatCr = (val) => {
     if (val >= 10000000) return (val / 10000000).toFixed(1) + " Cr";
@@ -100,12 +118,30 @@ export default function SuperAdminPage() {
 
   return (
     <DashboardLayout allowedRoles={["Super Admin"]}>
+      <ConfirmModal 
+        open={showResetConfirm}
+        onClose={() => setShowResetConfirm(false)}
+        onConfirm={handleResetAuction}
+        title="Reset Auction Session?"
+        message="This will permanently delete all bids, logs, and sales. Team budgets will be restored to their original values. This action cannot be undone."
+        danger
+      />
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-h1 text-slate-900">Platform Governance</h1>
           <p className="text-sub text-slate-900">Real-time oversight of auction ecosystem and financial velocity.</p>
         </div>
         <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              size="sm"
+              loading={isResetting}
+              onClick={() => setShowResetConfirm(true)}
+              className="text-red-600 border-red-100 hover:bg-red-50"
+            >
+               <ArrowsCounterClockwise size={16} />
+               Reset Session
+            </Button>
            <div className="px-4 py-2 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-ui-semibold text-emerald-700 text-xs">System Live</span>
@@ -195,12 +231,12 @@ export default function SuperAdminPage() {
               {recentLogs.map((log, i) => (
                 <motion.div 
                   key={log.log_id || i}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all group"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-all group"
                 >
-                  <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-white transition-colors">
-                    <Pulse size={16} className="text-slate-500" />
+                  <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-white transition-colors">
+                    <Pulse size={16} className="text-slate-400" />
                   </div>
                   <div className="min-w-0 flex-1">
                      <p className="text-ui-semibold text-slate-900 truncate">{log.player_name || "System"}</p>

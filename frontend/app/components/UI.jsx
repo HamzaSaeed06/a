@@ -148,8 +148,8 @@ TableCell.displayName = "TableCell"
 export function StatCard({ title, value, sub, icon: Icon, tone = "default" }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       transition={{ duration: 0.2 }}
       className="bg-white border border-slate-200 rounded-md shadow-sm p-6 transition-all hover:shadow-md"
     >
@@ -254,9 +254,9 @@ export function Modal({ open, onClose, title, children, width = 480 }) {
             onClick={onClose}
           />
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.99 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.99 }}
+            initial={{ opacity: 0, scale: 0.99 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.99 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="relative bg-white border border-slate-200 rounded-md max-h-[90vh] overflow-hidden w-full flex flex-col shadow-2xl"
             style={{ maxWidth: width }}
@@ -478,9 +478,9 @@ export function Select({ value, onChange, options, placeholder = "Select option"
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: 4, scale: 0.99 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 4, scale: 0.99 }}
+            initial={{ opacity: 0, scale: 0.99 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.99 }}
             transition={{ duration: 0.1, ease: "easeOut" }}
             data-lenis-prevent
             className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg shadow-slate-200/40 scrollbar-hide flex flex-col gap-0.5"
@@ -710,9 +710,9 @@ export function TableDropdown({ options }) {
         <AnimatePresence>
           {open && coords && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: -5 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -5 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.1 }}
               className="absolute z-[9999] w-36 origin-top-right rounded-lg border border-slate-200 bg-white p-1 shadow-lg shadow-slate-200/50"
               style={{ 

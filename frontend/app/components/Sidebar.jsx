@@ -205,7 +205,7 @@ function UserMenu({ user, logout }) {
         {/* Avatar right - clickable */}
         <button
           onClick={() => setOpen((v) => !v)}
-          className={`shrink-0 h-7 w-7 rounded-md flex items-center justify-center text-white text-xs font-bold transition hover:opacity-80 ${avatarBg}`}
+          className={`shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold transition hover:opacity-80 shadow-sm ${avatarBg}`}
         >
           {(user?.username || "U").charAt(0).toUpperCase()}
         </button>
@@ -218,9 +218,9 @@ function UserMenu({ user, logout }) {
             {/* Backdrop */}
             <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
             <motion.div
-              initial={{ opacity: 0, y: 6, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 6, scale: 0.97 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.15 }}
               className="absolute bottom-12 right-0 z-20 w-40 rounded-md border border-slate-200 bg-white shadow-md py-1"
             >

@@ -112,6 +112,8 @@ router.get('/bid-log', async (req, res) => {
 });
 
 // ── PLACE BID ─────────────────────────────────────────────────
+const { auctionTimers } = require('../state');
+
 router.post('/bid', async (req, res) => {
   const { player_id, auction_id, bid_amount } = req.body;
   const team_id = req.user.team_id;
@@ -120,13 +122,15 @@ router.post('/bid', async (req, res) => {
 
   const conn = await db.getConnection();
   try {
-    // Minimum Purse Validator logic
-    const [teamInfo] = await conn.query('SELECT remaining_budget FROM Teams WHERE team_id = ?', [team_id]);
+    // 1. Minimum Purse Validator logic
+    const [teamInfo] = await conn.query('SELECT remaining_budget, team_name, logo_url FROM Teams WHERE team_id = ?', [team_id]);
     const [squadInfo] = await conn.query('SELECT COUNT(*) as squadSize FROM Team_Squad WHERE team_id = ?', [team_id]);
     
     const remainingBudget = Number(teamInfo[0]?.remaining_budget || 0);
+    const teamName        = teamInfo[0]?.team_name || 'Unknown';
+    const teamLogo        = teamInfo[0]?.logo_url || null;
     const currentSquadSize = Number(squadInfo[0]?.squadSize || 0);
-    const neededPlayers = Math.max(0, 16 - currentSquadSize - 1); // We need 16 total. This bid is for 1.
+    const neededPlayers = Math.max(0, 16 - currentSquadSize - 1); 
     const minimumReserve = neededPlayers * 25000;
     
     if (remainingBudget - bid_amount < minimumReserve) {
@@ -144,9 +148,36 @@ router.post('/bid', async (req, res) => {
       [bid_amount, team_id, player_id, auction_id]
     );
     await conn.commit();
-    res.json({ message: 'Bid placed!' });
-  } catch (err) { await conn.rollback(); res.status(400).json({ error: err.message }); }
-  finally { conn.release(); }
+
+    // 2. Update Server State (Shared with Socket)
+    if (auctionTimers[auction_id]) {
+      auctionTimers[auction_id].timeLeft = 60; // Reset timer on bid
+      auctionTimers[auction_id].highestBid = bid_amount;
+      auctionTimers[auction_id].highestBidder = { team_id, team_name: teamName, team_logo: teamLogo };
+    }
+
+    // 3. Broadcast to all clients
+    const io = req.app.get('io');
+    const highestBidderObj = { team_id, team_name: teamName, team_logo: teamLogo };
+    if (io) {
+      io.to(`auction_${auction_id}`).emit('bid_updated', {
+        player_id,
+        highestBid: bid_amount,
+        highestBidder: highestBidderObj,
+        amount: bid_amount
+      });
+      io.to(`auction_${auction_id}`).emit('timer_update', {
+        timeLeft: 60,
+        isActive: true
+      });
+    }
+
+    res.json({ message: 'Bid placed!', success: true });
+  } catch (err) { 
+    if (conn) await conn.rollback(); 
+    res.status(400).json({ error: err.message }); 
+  }
+  finally { if (conn) conn.release(); }
 });
 
 // ── WISHLIST ──────────────────────────────────────────────────
@@ -244,10 +275,10 @@ router.get('/competitors', async (req, res) => {
 
     // Get squad counts by role for all teams
     const [squads] = await db.query(
-      `SELECT ts.team_id, p.role, COUNT(*) as count
-       FROM Team_Squad ts
-       JOIN Players p ON ts.player_id = p.player_id
-       GROUP BY ts.team_id, p.role`
+      `SELECT ps.team_id, p.role, COUNT(*) as count
+       FROM Player_Sale ps
+       JOIN Players p ON ps.player_id = p.player_id
+       GROUP BY ps.team_id, p.role`
     );
 
     // Group the squad counts into the teams array
@@ -272,13 +303,53 @@ router.get('/competitors', async (req, res) => {
 });
 
 // ── AUCTION SEASONS ──────────────────────────────────────────
-router.get('/auctions', async (req, res) => {
+// ── SQUAD STATS ──────────────────────────────────────────────
+router.get('/squad-stats', async (req, res) => {
   try {
-    const [rows] = await db.query(
-      `SELECT auction_id, auction_name, season, status, description 
-       FROM Auction ORDER BY season DESC`
-    );
+    const [rows] = await db.query(`
+      SELECT t.team_id, t.team_name, t.logo_url, COUNT(ps.sale_id) as count
+      FROM Teams t
+      LEFT JOIN Player_Sale ps ON t.team_id = ps.team_id
+      GROUP BY t.team_id, t.team_name, t.logo_url
+    `);
     res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── RECENTLY SOLD ─────────────────────────────────────────────
+router.get('/recently-sold', async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT p.name, p.role, ps.final_price as amount, t.team_name, t.logo_url as team_logo
+      FROM Player_Sale ps
+      JOIN Players p ON ps.player_id = p.player_id
+      JOIN Teams t ON ps.team_id = t.team_id
+      ORDER BY ps.sale_id DESC
+      LIMIT 10
+    `);
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── LIVE AUCTION STATUS ───────────────────────────────────────
+router.get('/live-status', async (req, res) => {
+  try {
+    const [auctions] = await db.query('SELECT * FROM Auction ORDER BY auction_id DESC LIMIT 1');
+    const auction = auctions[0];
+    if (!auction) return res.json({ auction: null, current_player: null });
+
+    const [players] = await db.query(
+      `SELECT p.*, ap.pool_id, ap.current_bid, ap.highest_bidder_id,
+              pc.category_name, c.country_name, c.country_code
+       FROM Auction_Pool ap
+       JOIN Players p ON ap.player_id = p.player_id
+       LEFT JOIN Player_Category pc ON p.category_id = pc.category_id
+       LEFT JOIN Countries c ON p.country_id = c.country_id
+       WHERE ap.auction_id = ? AND ap.status = 'active'
+       LIMIT 1`,
+      [auction.auction_id]
+    );
+    res.json({ auction, current_player: players[0] || null });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

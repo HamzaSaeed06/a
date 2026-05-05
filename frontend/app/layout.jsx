@@ -21,17 +21,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body className="antialiased text-slate-900 bg-white" suppressHydrationWarning>
-        <Toaster 
-          position="top-center" 
-          toastOptions={{
-            style: {
-              background: '#334155',
-              color: '#fff',
-              fontSize: '14px',
-              borderRadius: '8px',
-            },
-          }} 
-        />
+        <Toaster position="top-center" />
         <SmoothScroll>
           <AuthProvider>{children}</AuthProvider>
         </SmoothScroll>

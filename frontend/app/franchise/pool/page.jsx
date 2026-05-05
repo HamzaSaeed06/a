@@ -2,17 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  ListChecks, Heart, Clock, CheckCircle, Prohibit,
-  ArrowsLeftRight, X, CoinVertical, Person
-} from "@phosphor-icons/react";
 import DashboardLayout from "../../components/DashboardLayout";
 import {
   EmptyState, PageHeader, SearchInput, SectionCard,
   ViewToggle, Pagination, Toast, useToast, Modal,
   Table, TableHeader, TableRow, TableHead, TableBody, TableCell,
-  Button, Input,
+  Button, Input, Field, Spinner, TableDropdown
 } from "../../components/UI";
+import { 
+  ListChecks, Heart, Clock, CheckCircle, Prohibit,
+  ArrowsLeftRight, X, CoinVertical, Person, PencilSimple, HeartBreak
+} from "@phosphor-icons/react";
 import { apiFetch } from "../../lib/api";
 import { formatCurrency, cn } from "../../lib/format";
 
@@ -91,7 +91,7 @@ function WishlistSettingsModal({ player, currentMax, currentPriority, onClose, o
               key={p}
               onClick={() => setPriority(p)}
               className={cn(
-                "flex-1 py-2 rounded-md border text-xs font-bold uppercase transition-colors",
+                "flex-1 py-2.5 rounded-md border text-ui-semibold capitalize transition-colors",
                 priority === p 
                   ? p === "avoid" ? "bg-red-50 text-red-600 border-red-200" : "bg-slate-900 text-white border-slate-900"
                   : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
@@ -304,7 +304,7 @@ export default function FranchisePoolPage() {
                     <TableHead>Base Price</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Max Bid</TableHead>
-                    <TableHead className="w-32">Actions</TableHead>
+                    <TableHead className="w-16">Options</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -336,9 +336,9 @@ export default function FranchisePoolPage() {
                         </TableCell>
                         <TableCell>
                           {item.is_wishlisted ? (
-                            <div className="flex flex-col gap-1 items-start">
+                            <div className="flex flex-col items-start">
                               {item.priority === "avoid" ? (
-                                <span className="text-[10px] font-bold px-2 py-1 bg-red-50 text-red-600 rounded border border-red-100 uppercase">
+                                <span className="text-ui-xs font-bold px-2 py-1 bg-red-50 text-red-600 rounded border border-red-100 uppercase">
                                   Do Not Buy
                                 </span>
                               ) : (
@@ -353,43 +353,26 @@ export default function FranchisePoolPage() {
                                   {item.max_bid ? formatCurrency(item.max_bid) : "Set limit"}
                                 </button>
                               )}
-                              <button onClick={() => setSettingsPlayer(item)} className="text-[9px] font-bold text-slate-400 hover:text-slate-600 uppercase underline decoration-dashed">
-                                {item.priority} Target
-                              </button>
                             </div>
                           ) : (
                             <span className="text-ui-xs text-slate-300">—</span>
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1">
-                            {/* Compare toggle */}
-                            <button
-                              onClick={() => toggleCompare(item)}
-                              className={cn("p-1.5 rounded-md transition-colors text-[10px] font-bold border",
-                                inCompare
-                                  ? "bg-slate-900 text-white border-slate-900"
-                                  : "bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100"
-                              )}
-                              title="Add to Compare"
-                            >
-                              <ArrowsLeftRight size={14} />
-                            </button>
-                            {/* Wishlist toggle */}
-                            <button
-                              onClick={() => toggleWishlist(item.player_id)}
-                              className={cn("p-1.5 rounded-md transition-colors",
-                                item.is_wishlisted ? "text-red-500 bg-red-50 border border-red-200" : "text-slate-300 hover:text-slate-400 border border-slate-200"
-                              )}
-                              title="Add to Wishlist"
-                            >
-                              {toggling === item.player_id ? (
-                                <Spinner size={14} color="slate" />
-                              ) : (
-                                <Heart size={14} weight={item.is_wishlisted ? "fill" : "bold"} />
-                              )}
-                            </button>
-                          </div>
+                           <TableDropdown
+                             options={[
+                               { 
+                                 label: item.is_wishlisted ? "Remove Wishlist" : "Add to Wishlist", 
+                                 icon: item.is_wishlisted ? HeartBreak : Heart,
+                                 onClick: () => toggleWishlist(item.player_id)
+                               },
+                               { 
+                                 label: inCompare ? "Remove Compare" : "Compare Player", 
+                                 icon: ArrowsLeftRight, 
+                                 onClick: () => toggleCompare(item) 
+                               }
+                             ]}
+                           />
                         </TableCell>
                       </TableRow>
                     );
@@ -407,13 +390,21 @@ export default function FranchisePoolPage() {
                           <div className={cn("h-12 w-12 rounded-full flex items-center justify-center text-sm font-medium border border-slate-100 shadow-sm overflow-hidden", !item.image_url && "bg-slate-900 text-white")}>
                             {item.image_url ? <img src={item.image_url} className="w-full h-full object-contain" /> : item.name?.substring(0, 2).toUpperCase()}
                           </div>
-                          <div className="flex gap-1">
-                            <button onClick={() => toggleCompare(item)} className={cn("p-1.5 rounded-md border transition-colors", inCompare ? "bg-slate-900 text-white border-slate-900" : "border-slate-200 text-slate-400 hover:border-slate-400")} title="Compare">
-                              <ArrowsLeftRight size={14} />
-                            </button>
-                            <button onClick={() => toggleWishlist(item.player_id)} className={cn("p-1.5 rounded-md border transition-colors", item.is_wishlisted ? "text-red-500 bg-red-50 border-red-200" : "text-slate-300 border-slate-200 hover:text-slate-400")} title="Wishlist">
-                              <Heart size={14} weight={item.is_wishlisted ? "fill" : "bold"} />
-                            </button>
+                          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                            <TableDropdown 
+                               options={[
+                                 { 
+                                   label: item.is_wishlisted ? "Remove Wishlist" : "Add to Wishlist", 
+                                   icon: item.is_wishlisted ? HeartBreak : Heart,
+                                   onClick: () => toggleWishlist(item.player_id)
+                                 },
+                                 { 
+                                   label: inCompare ? "Remove Compare" : "Compare Player", 
+                                   icon: ArrowsLeftRight, 
+                                   onClick: () => toggleCompare(item) 
+                                 }
+                               ]}
+                            />
                           </div>
                         </div>
                         <h3 className="text-ui-semibold text-slate-900 truncate mb-0.5">{item.name}</h3>
@@ -431,17 +422,14 @@ export default function FranchisePoolPage() {
                         {item.is_wishlisted && (
                           <div className="flex items-center gap-2">
                             {item.priority === "avoid" ? (
-                              <div className="flex-1 text-[10px] text-center font-bold py-1.5 bg-red-50 text-red-600 rounded border border-red-100 uppercase">
+                              <div className="flex-1 text-ui-xs text-center font-bold py-1.5 bg-red-50 text-red-600 rounded border border-red-100 uppercase">
                                 DO NOT BUY
                               </div>
                             ) : (
                               <button onClick={() => setSettingsPlayer(item)} className={cn("flex-1 text-[10px] font-bold py-1.5 rounded-md border transition-colors", item.max_bid ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-50 text-slate-500 border-slate-200")}>
-                                {item.max_bid ? `Max: ${formatCurrency(item.max_bid)}` : "Set Max Bid"}
+                                {item.max_bid ? formatCurrency(item.max_bid) : "Set Max Bid"}
                               </button>
                             )}
-                            <button onClick={() => setSettingsPlayer(item)} className={cn("text-[9px] font-bold px-2 py-1.5 rounded border uppercase transition-colors", item.priority === "primary" ? "bg-slate-900 text-white border-slate-900" : "bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100")} title="Change Priority">
-                              {item.priority?.substring(0,3)}
-                            </button>
                           </div>
                         )}
                       </div>

@@ -37,10 +37,10 @@ export default function PlayerStatsOverlay({ player, visible, onClose, bidAmount
           onClick={(e) => { if (e.target === e.currentTarget && onClose) onClose(); }}
         >
           <motion.div
-            initial={{ opacity: 0, y: 28, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.97 }}
-            transition={{ type: "spring", stiffness: 280, damping: 24 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
             className="relative w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
           >
             {onClose && (
@@ -60,7 +60,7 @@ export default function PlayerStatsOverlay({ player, visible, onClose, bidAmount
                 </div>
 
                 <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-                  <div className="h-28 w-28 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
+                  <div className="h-28 w-28 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-50 shadow-sm">
                     {player.action_image_url || player.image_url ? (
                       <img
                         src={(player.action_image_url || player.image_url).startsWith("/") ? (player.action_image_url || player.image_url) : `/uploads/${player.action_image_url || player.image_url}`}

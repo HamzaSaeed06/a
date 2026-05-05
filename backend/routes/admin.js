@@ -383,9 +383,9 @@ router.post('/next-player', async (req, res) => {
     if (!auctions.length) throw new Error('No auction season found.');
     const { auction_id, status } = auctions[0];
 
-    // Auto-update status to live if it's upcoming
+    // Auto-update status to active if it's upcoming
     if (status === 'upcoming') {
-      await conn.query('UPDATE Auction SET status = ? WHERE auction_id = ?', ['live', auction_id]);
+      await conn.query('UPDATE Auction SET status = ? WHERE auction_id = ?', ['active', auction_id]);
     }
 
     // Mark current active as processed
@@ -415,6 +415,36 @@ router.post('/next-player', async (req, res) => {
     await conn.query(`UPDATE Players SET status = 'in-auction' WHERE player_id = ?`, [player_id]);
 
     await conn.commit();
+
+    // Broadcast next player to everyone
+    const io = req.app.get('io');
+    const { auctionTimers } = require('../state');
+
+    if (io) {
+      // Fetch full player details for broadcast
+      const [details] = await conn.query(
+        `SELECT p.*, pc.category_name, c.country_name, c.country_code
+         FROM Players p
+         LEFT JOIN Player_Category pc ON p.category_id = pc.category_id
+         LEFT JOIN Countries c ON p.country_id = c.country_id
+         WHERE p.player_id = ?`,
+        [player_id]
+      );
+      
+      const playerDetails = details[0];
+
+      // Update server-side timer state
+      auctionTimers[auction_id] = {
+        timeLeft: 60, // 1 minute for new player
+        isActive: false,
+        currentPlayer: playerDetails,
+        highestBid: Number(playerDetails.base_price),
+        highestBidder: null
+      };
+
+      io.to(`auction_${auction_id}`).emit('player_changed', playerDetails);
+    }
+
     res.json({ message: 'Next player set.' });
   } catch (err) { await conn.rollback(); res.status(500).json({ error: err.message }); }
   finally { conn.release(); }
@@ -435,6 +465,17 @@ router.post('/sell-player', async (req, res) => {
 
     await conn.query(`CALL Sell_Player(?, ?, ?, ?, ?)`, [active.player_id, active.highest_bidder_id, auction.auction_id, active.current_bid, auction.season]);
     await conn.commit();
+
+    // Broadcast to everyone
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`auction_${auction.auction_id}`).emit('player_sold', {
+        player_id: active.player_id,
+        team_id: active.highest_bidder_id,
+        amount: active.current_bid
+      });
+    }
+
     res.json({ message: 'Player sold!' });
   } catch (err) { await conn.rollback(); res.status(500).json({ error: err.message }); }
   finally { conn.release(); }
@@ -476,4 +517,47 @@ router.get('/auction-log', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── RESET AUCTION (Testing Tool) ─────────────────────────────
+router.post('/reset-auction', async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+    
+    // 1. Clear all transaction data
+    await conn.query('DELETE FROM Bids');
+    await conn.query('DELETE FROM Auction_Log');
+    await conn.query('DELETE FROM Player_Sale');
+    
+    // 2. Restore Team Purses
+    await conn.query('UPDATE Teams SET remaining_budget = total_budget');
+    
+    // 3. Reset Player Statuses
+    await conn.query("UPDATE Players SET status = 'unsold'");
+    
+    // 4. Reset Auction Pool
+    await conn.query("UPDATE Auction_Pool SET status = 'waiting', current_bid = NULL, highest_bidder_id = NULL");
+    
+    // 5. Reset IO state
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('auction_sync', {
+        timeLeft: 0,
+        isActive: false,
+        currentPlayer: null,
+        highestBid: 0,
+        highestBidder: null
+      });
+    }
+
+    await conn.commit();
+    res.json({ message: 'Auction environment reset to initial state.' });
+  } catch (err) {
+    await conn.rollback();
+    res.status(500).json({ error: err.message });
+  } finally {
+    conn.release();
+  }
+});
+
 module.exports = router;
+

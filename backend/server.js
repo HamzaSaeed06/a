@@ -9,8 +9,8 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
+    origin: "*",
+    methods: ["GET", "POST"]
   }
 });
 
@@ -33,7 +33,7 @@ app.get('/', (req, res) => {
 });
 
 // Global Auction States
-let auctionTimers = {}; // { auction_id: { timeLeft: 15, isActive: false, currentPlayer: null } }
+const { auctionTimers } = require('./state');
 
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
@@ -57,28 +57,37 @@ io.on('connection', (socket) => {
   socket.on('place_bid', async (data) => {
     try {
       const { auction_id, player_id, team_id, amount } = data;
+      console.log(`Bid attempt: Auction ${auction_id}, Player ${player_id}, Team ${team_id}, Amount ${amount}`);
       const db = require('./db');
       
       // 1. Call DB procedure
       await db.query('CALL Place_Bid(?, ?, ?, ?)', [player_id, team_id, auction_id, amount]);
       
-      // 2. Get Team Name
-      const [teams] = await db.query('SELECT team_name FROM Teams WHERE team_id = ?', [team_id]);
+      // 2. Get Team Details
+      const [teams] = await db.query('SELECT team_name, logo_url FROM Teams WHERE team_id = ?', [team_id]);
       const team_name = teams[0]?.team_name || 'Unknown Team';
+      const team_logo = teams[0]?.logo_url || null;
       
+      console.log(`Bid successful: ${team_name} bid ${amount}`);
+
       // 3. Update Server State
       if (auctionTimers[auction_id]) {
-        auctionTimers[auction_id].timeLeft = 15; // Reset timer on bid
+        auctionTimers[auction_id].timeLeft = 60; // Reset timer on bid
         auctionTimers[auction_id].highestBid = amount;
-        auctionTimers[auction_id].highestBidder = { team_id, team_name };
+        auctionTimers[auction_id].highestBidder = { team_id, team_name, team_logo };
       }
       
       // 4. Broadcast
+      const highestBidderObj = { team_id, team_name, team_logo };
       io.to(`auction_${auction_id}`).emit('bid_updated', {
         player_id,
-        team_id,
-        team_name,
+        highestBid: amount,
+        highestBidder: highestBidderObj,
         amount
+      });
+      io.to(`auction_${auction_id}`).emit('timer_update', {
+        timeLeft: 60,
+        isActive: true
       });
     } catch (err) {
       console.error("Bid error:", err.message);
@@ -86,38 +95,67 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Franchise bid broadcast (called after HTTP bid succeeds)
-  socket.on('franchise_bid', (data) => {
-    const { auction_id, player_id, team_id, team_name, amount } = data;
-    // Reset timer on new bid
+  // Franchise bid broadcast
+  socket.on('franchise_bid', async (data) => {
+    const { auction_id, player_id, team_id, amount } = data;
+    const db = require('./db');
+    const [teams] = await db.query('SELECT team_name, logo_url FROM Teams WHERE team_id = ?', [team_id]);
+    const team_name = teams[0]?.team_name || 'Unknown Team';
+    const team_logo = teams[0]?.logo_url || null;
+    const highestBidderObj = { team_id, team_name, team_logo };
+
     if (auctionTimers[auction_id]) {
-      auctionTimers[auction_id].timeLeft = 15;
+      auctionTimers[auction_id].timeLeft = 60;
       auctionTimers[auction_id].highestBid = amount;
-      auctionTimers[auction_id].highestBidder = { team_id, team_name };
+      auctionTimers[auction_id].highestBidder = highestBidderObj;
     }
-    // Broadcast to everyone in the room
-    io.to(`auction_${auction_id}`).emit('bid_updated', { player_id, team_id, team_name, amount, bid_amount: amount });
-    io.to(`auction_${auction_id}`).emit('timer_update', 15);
+    io.to(`auction_${auction_id}`).emit('bid_updated', { 
+      player_id, 
+      highestBid: amount, 
+      highestBidder: highestBidderObj, 
+      amount 
+    });
+    io.to(`auction_${auction_id}`).emit('timer_update', {
+      timeLeft: 60,
+      isActive: true
+    });
   });
 
   // Admin Controls (Internal Socket Events)
   socket.on('admin_start_clock', (auction_id) => {
-    if (!auctionTimers[auction_id]) return;
-    auctionTimers[auction_id].isActive = true;
+    if (!auctionTimers[auction_id]) {
+      auctionTimers[auction_id] = {
+        timeLeft: 60,
+        isActive: true,
+        currentPlayer: null,
+        highestBid: 0,
+        highestBidder: null
+      };
+    } else {
+      auctionTimers[auction_id].isActive = true;
+    }
     startTimer(auction_id);
     io.to(`auction_${auction_id}`).emit('auction_started');
+    io.to(`auction_${auction_id}`).emit('timer_update', {
+      timeLeft: auctionTimers[auction_id].timeLeft,
+      isActive: true
+    });
   });
 
   socket.on('admin_set_player', (data) => {
     const { auction_id, player } = data;
     auctionTimers[auction_id] = {
-      timeLeft: 15,
+      timeLeft: 60,
       isActive: false,
       currentPlayer: player,
       highestBid: Number(player.base_price),
       highestBidder: null
     };
     io.to(`auction_${auction_id}`).emit('player_changed', player);
+    io.to(`auction_${auction_id}`).emit('timer_update', {
+      timeLeft: 60,
+      isActive: false
+    });
   });
 });
 
@@ -127,16 +165,63 @@ function startTimer(auction_id) {
   auctionTimers[auction_id].interval = setInterval(() => {
     if (auctionTimers[auction_id].timeLeft > 0 && auctionTimers[auction_id].isActive) {
       auctionTimers[auction_id].timeLeft -= 1;
-      io.to(`auction_${auction_id}`).emit('timer_update', auctionTimers[auction_id].timeLeft);
+      io.to(`auction_${auction_id}`).emit('timer_update', {
+        timeLeft: auctionTimers[auction_id].timeLeft,
+        isActive: true
+      });
     } else if (auctionTimers[auction_id].timeLeft === 0) {
       clearInterval(auctionTimers[auction_id].interval);
       auctionTimers[auction_id].isActive = false;
-      io.to(`auction_${auction_id}`).emit('auction_timeout');
+      
+      const state = auctionTimers[auction_id];
+      if (state.highestBidder && state.currentPlayer) {
+        // Auto sell to highest bidder
+        handleAutoSell(auction_id, state);
+      } else {
+        io.to(`auction_${auction_id}`).emit('auction_timeout');
+      }
     }
   }, 1000);
 }
 
+async function handleAutoSell(auction_id, state) {
+  const db = require('./db');
+  try {
+    // 1. Get current auction season
+    const [auctions] = await db.query('SELECT season FROM Auction WHERE auction_id = ?', [auction_id]);
+    const season = auctions[0]?.season || '2024';
+
+    // 2. Call Sell_Player procedure
+    await db.query('CALL Sell_Player(?, ?, ?, ?, ?)', [
+      state.currentPlayer.player_id,
+      state.highestBidder.team_id,
+      auction_id,
+      state.highestBid,
+      season
+    ]);
+
+    // 3. Broadcast winner details
+    io.to(`auction_${auction_id}`).emit('player_sold', {
+      player: state.currentPlayer,
+      team_id: state.highestBidder.team_id,
+      team_name: state.highestBidder.team_name,
+      amount: state.highestBid
+    });
+
+    console.log(`Auto-sold: ${state.currentPlayer.name} to ${state.highestBidder.team_name} for ${state.highestBid}`);
+    
+    // Clear state for this auction
+    state.currentPlayer = null;
+    state.highestBidder = null;
+    state.highestBid = 0;
+
+  } catch (err) {
+    console.error("Auto-sell error:", err.message);
+    io.to(`auction_${auction_id}`).emit('bid_error', { message: 'Auto-sell failed: ' + err.message });
+  }
+}
+
 const PORT = process.env.PORT || 8000;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
