@@ -66,12 +66,21 @@ export default function LiveAuctionPage() {
     socket.emit("join_auction", auction.auction_id);
 
     socket.on("bid_updated", (data) => {
-      setHighestBid(Number(data.amount));
-      setHighestBidder({ team_id: data.team_id, team_name: data.team_name, team_logo: data.team_logo });
-      setLiveBids(prev => [{ team_name: data.team_name, team_logo: data.team_logo, amount: data.amount, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) }, ...prev].slice(0, 20));
-      toast(`🔵 ${data.team_name} bid ${formatCurrency(data.amount)}!`);
+      const bidder = data.highestBidder || { team_id: data.team_id, team_name: data.team_name, team_logo: data.team_logo };
+      const amount = data.highestBid ?? data.amount;
+      setHighestBid(Number(amount));
+      setHighestBidder(bidder);
+      setLiveBids(prev => [{ team_name: bidder.team_name, team_logo: bidder.team_logo, amount, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) }, ...prev].slice(0, 20));
+      toast(`🔵 ${bidder.team_name} bid ${formatCurrency(amount)}!`);
     });
-    socket.on("timer_update", (t) => { setTimeLeft(t); if (t === 10 && !tenSecAlerted.current) { tenSecAlerted.current = true; toast("10 seconds remaining!"); } if (t > 10) tenSecAlerted.current = false; });
+    socket.on("timer_update", (payload) => {
+      const t = typeof payload === "object" ? payload.timeLeft : payload;
+      const active = typeof payload === "object" ? payload.isActive : undefined;
+      setTimeLeft(t);
+      if (active !== undefined) setIsActive(active);
+      if (t === 10 && !tenSecAlerted.current) { tenSecAlerted.current = true; toast("10 seconds remaining!"); }
+      if (t > 10) tenSecAlerted.current = false;
+    });
     socket.on("auction_started", () => { setIsActive(true); toast.success("Bidding clock started — 60 seconds!"); });
     socket.on("auction_timeout", () => { setIsActive(false); setTimeLeft(0); toast("Time expired — no bids placed."); });
     socket.on("player_changed", (player) => { setCurrentPlayer(player); setHighestBid(Number(player.base_price)); setHighestBidder(null); setTimeLeft(TIMER_MAX); setIsActive(false); setLiveBids([]); tenSecAlerted.current = false; toast(`${player.name} is now on the floor!`); });

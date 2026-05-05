@@ -66,10 +66,9 @@ export default function FranchiseLiveAuction() {
       setIsActive(data.isActive);
     });
     socket.on("player_sold", (data) => {
-      toast(
-        `${data.player.name} sold to ${data.team.team_name} for ${formatCurrency(data.amount)}`,
-        "success",
-      );
+      const teamName = data.team?.team_name || data.team_name || "a team";
+      const playerName = data.player?.name || "Player";
+      toast(`${playerName} sold to ${teamName} for ${formatCurrency(data.amount)}`, "success");
       fetchInitialData();
     });
     socket.on("player_unsold", (data) => {

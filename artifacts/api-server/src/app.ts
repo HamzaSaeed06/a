@@ -5,6 +5,7 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import pinoHttp from "pino-http";
+import jwt from "jsonwebtoken";
 import { logger } from "./lib/logger.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -45,14 +46,29 @@ app.use("/api/admin",       adminRouter);
 app.use("/api/franchise",   franchiseRouter);
 app.use("/api/super-admin", superAdminRouter);
 
+app.get("/api/healthz", (_req, res) => res.json({ status: "ok" }));
 app.get("/", (_req, res) => res.json({ message: "🏏 Auction OS API is running!" }));
 
 // ── Socket.IO logic ───────────────────────────────────────────
 const { auctionTimers } = await import("./state.js");
 const { default: db }   = await import("./db.js");
 
+// ── Socket.IO auth middleware ─────────────────────────────────
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(" ")[1];
+  if (!token) { (socket as any).socketUser = null; return next(); }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    (socket as any).socketUser = decoded;
+  } catch {
+    (socket as any).socketUser = null;
+  }
+  next();
+});
+
 io.on("connection", (socket) => {
-  logger.info({ id: socket.id }, "User connected");
+  const socketUser: any = (socket as any).socketUser;
+  logger.info({ id: socket.id, role: socketUser?.role }, "User connected");
 
   socket.on("join_auction", (auction_id: number) => {
     socket.join(`auction_${auction_id}`);
@@ -68,8 +84,13 @@ io.on("connection", (socket) => {
   });
 
   socket.on("place_bid", async (data: any) => {
+    if (!socketUser) { socket.emit("bid_error", { message: "Authentication required." }); return; }
     try {
       const { auction_id, player_id, team_id, amount } = data;
+      // Franchise users can only bid for their own team
+      if (socketUser.role === "Franchise" && socketUser.team_id !== team_id) {
+        socket.emit("bid_error", { message: "You can only bid for your own team." }); return;
+      }
       await db.query("CALL Place_Bid(?, ?, ?, ?)", [player_id, team_id, auction_id, amount]);
       const [teams]: any = await db.query("SELECT team_name, logo_url FROM Teams WHERE team_id = ?", [team_id]);
       const team_name  = teams[0]?.team_name || "Unknown Team";
@@ -88,7 +109,13 @@ io.on("connection", (socket) => {
   });
 
   socket.on("franchise_bid", async (data: any) => {
+    if (!socketUser || socketUser.role !== "Franchise") {
+      socket.emit("bid_error", { message: "Franchise access required." }); return;
+    }
     const { auction_id, player_id, team_id, amount } = data;
+    if (socketUser.team_id !== team_id) {
+      socket.emit("bid_error", { message: "You can only bid for your own team." }); return;
+    }
     const [teams]: any = await db.query("SELECT team_name, logo_url FROM Teams WHERE team_id = ?", [team_id]);
     const team_name = teams[0]?.team_name || "Unknown Team";
     const team_logo = teams[0]?.logo_url  || null;
@@ -103,6 +130,9 @@ io.on("connection", (socket) => {
   });
 
   socket.on("admin_start_clock", (auction_id: number) => {
+    if (!socketUser || !["Admin", "Super Admin"].includes(socketUser.role)) {
+      socket.emit("bid_error", { message: "Admin access required." }); return;
+    }
     if (!auctionTimers[auction_id]) {
       auctionTimers[auction_id] = { timeLeft: 60, isActive: true, currentPlayer: null, highestBid: 0, highestBidder: null };
     } else {
@@ -114,6 +144,9 @@ io.on("connection", (socket) => {
   });
 
   socket.on("admin_set_player", (data: any) => {
+    if (!socketUser || !["Admin", "Super Admin"].includes(socketUser.role)) {
+      socket.emit("bid_error", { message: "Admin access required." }); return;
+    }
     const { auction_id, player } = data;
     auctionTimers[auction_id] = { timeLeft: 60, isActive: false, currentPlayer: player, highestBid: Number(player.base_price), highestBidder: null };
     io.to(`auction_${auction_id}`).emit("player_changed", player);
