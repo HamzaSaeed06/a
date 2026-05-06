@@ -1,34 +1,13 @@
 {
-  "name": "auction-os",
+  "name": "auction-os-monorepo",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "dev": "cd artifacts/auction-os && pnpm dev",
+    "build": "cd artifacts/auction-os && pnpm build",
+    "preview": "cd artifacts/auction-os && pnpm preview",
+    "dev:api": "cd artifacts/api-server && pnpm dev",
+    "install:all": "cd artifacts/auction-os && pnpm install && cd ../api-server && pnpm install"
   },
-  "dependencies": {
-    "@phosphor-icons/react": "^2.1.10",
-    "framer-motion": "^11.0.3",
-    "lenis": "^1.3.23",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-easy-crop": "^5.5.7",
-    "react-hot-toast": "^2.6.0",
-    "recharts": "^2.15.4",
-    "socket.io-client": "^4.8.3",
-    "wouter": "^3.3.5"
-  },
-  "devDependencies": {
-    "@tailwindcss/vite": "^4.0.0",
-    "@types/node": "^20.0.0",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@vitejs/plugin-react": "^4.2.0",
-    "tailwindcss": "^4.0.0",
-    "typescript": "^5.3.0",
-    "vite": "^5.0.0"
-  }
+  "devDependencies": {}
 }

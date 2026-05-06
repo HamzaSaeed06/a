@@ -1,49 +1,63 @@
-## Cricket Auction OS - Production Ready
+# Cricket Auction OS
 
-Your application is running clean and ready!
+A full-stack auction management system for cricket leagues.
 
-### Project Structure
+## Project Structure
+
 ```
-/vercel/share/v0-project/
-├── src/
-│   ├── pages/              (App pages - Login, Admin, Franchise, Super Admin)
-│   ├── components/         (React components)
-│   │   ├── animations/     (Framer Motion animated components)
-│   │   └── ui/             (UI building blocks)
-│   ├── lib/                (Utilities - API, Auth, Socket, Formatting)
-│   ├── hooks/              (Custom React hooks)
-│   ├── App.tsx             (Main app router)
-│   ├── main.tsx            (React entry point)
-│   └── index.css           (Global styles + Tailwind)
-├── public/                 (Static assets)
-├── package.json            (Dependencies)
-├── vite.config.ts          (Vite build config)
-├── tsconfig.json           (TypeScript config)
-├── tailwind.config.ts      (Tailwind CSS config)
-└── index.html              (HTML template)
+├── artifacts/
+│   ├── api-server/          # Backend (Express + MySQL)
+│   │   ├── src/
+│   │   │   ├── routes/      # API routes (auth, admin, franchise, superadmin)
+│   │   │   ├── middleware/  # Auth middleware
+│   │   │   ├── db.js        # Database connection
+│   │   │   └── state.js     # Auction state management
+│   │   └── package.json
+│   │
+│   └── auction-os/          # Frontend (React + Vite + Tailwind)
+│       ├── src/
+│       │   ├── pages/       # Login, Admin, Franchise, Super Admin pages
+│       │   ├── components/  # React components + animations
+│       │   └── lib/         # API, Auth, Socket utilities
+│       └── package.json
+│
+└── package.json             # Root scripts
 ```
 
-### What's Inside
-- **Pages**: Login, Admin Dashboard, Live Auction, Players, Pool, Teams (Admin + Franchise views)
-- **Animations**: Staggered cards, animated numbers, page transitions, timer glows
-- **Real-time**: Socket.io integration for live bidding
-- **Styling**: Tailwind CSS with premium dark theme (blue/gold/purple)
-- **Components**: 60+ UI components with shadcn/ui foundation
+## Running the Project
 
-### Running the Project
+### Frontend
 ```bash
-cd /vercel/share/v0-project
-pnpm run dev          # Start dev server (http://localhost:5173)
-pnpm run build        # Build for production
-pnpm run preview      # Preview built version
+cd artifacts/auction-os
+pnpm install
+pnpm dev
 ```
 
-### Key Features
-✅ Premium animations with Framer Motion
-✅ Real-time bidding with Socket.io
-✅ Multiple user roles (Admin, Franchise, Super Admin)
-✅ Advanced UI with smooth transitions
-✅ No unnecessary files or bloat
-✅ Production-grade code structure
+### Backend
+```bash
+cd artifacts/api-server
+pnpm install
+pnpm dev
+```
 
-The project is clean, fast, and ready for deployment!
+## Environment Variables (Backend)
+
+Create `.env` in `artifacts/api-server/`:
+
+```env
+DB_HOST=your-mysql-host
+DB_PORT=3306
+DB_USER=your-username
+DB_PASSWORD=your-password
+DB_NAME=auction_db
+JWT_SECRET=your-secret-key
+PORT=5000
+```
+
+## Features
+
+- Multi-role authentication (Admin, Franchise, Super Admin)
+- Live auction with real-time bidding (Socket.io)
+- Player management and pool creation
+- Team and franchise management
+- Premium UI with Framer Motion animations

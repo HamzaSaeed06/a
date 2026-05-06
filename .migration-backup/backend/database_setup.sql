@@ -1,4 +1,0 @@
--- Authoritative database setup now lives in:
--- database/auction_db_complete.sql
---
--- Use that file for full schema import, procedures, triggers, and seed access.
