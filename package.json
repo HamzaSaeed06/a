@@ -2,12 +2,16 @@
   "name": "auction-os",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
   "scripts": {
-    "dev": "concurrently \"pnpm --filter backend dev\" \"pnpm --filter frontend dev\"",
-    "dev:frontend": "pnpm --filter frontend dev",
-    "dev:backend": "pnpm --filter backend dev",
-    "build": "pnpm --filter frontend build",
-    "install:all": "pnpm install"
+    "dev": "concurrently \"npm run dev -w auction-os-backend\" \"npm run dev -w auction-os-frontend\"",
+    "dev:frontend": "npm run dev -w auction-os-frontend",
+    "dev:backend": "npm run dev -w auction-os-backend",
+    "build": "npm run build -w auction-os-frontend",
+    "install:all": "npm install"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
