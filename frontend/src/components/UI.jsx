@@ -41,7 +41,6 @@ export const Button = React.forwardRef(({ className, variant = "primary", size =
   };
   return (
     <motion.button
-      whileHover={{ y: -1 }}
       whileTap={{ scale: 0.98 }}
       type={props.type || "button"}
       ref={ref}
@@ -153,9 +152,8 @@ export function StatCard({ title, value, sub, icon: Icon, tone = "default" }) {
   };
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4 }}
       className="bg-white border border-slate-200 rounded-xl p-5 transition-all hover:shadow-lg hover:border-slate-300"
     >
@@ -183,8 +181,8 @@ export function StatCard({ title, value, sub, icon: Icon, tone = "default" }) {
 export function PageHeader({ title, subtitle, action }) {
   return (
     <motion.div 
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
     >
       <div>
@@ -199,8 +197,8 @@ export function PageHeader({ title, subtitle, action }) {
 export function SectionCard({ title, sub, action, children, padded = true, className, fullHeight = false }) {
   return (
     <motion.section
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4 }}
       className={cn("bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col transition-all hover:shadow-md", fullHeight && "min-h-[calc(100vh-280px)] lg:min-h-[calc(100vh-220px)]", className)}
     >
@@ -238,12 +236,11 @@ export function Modal({ open, onClose, title, children, width = 480 }) {
       {open ? (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
-          <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="relative bg-white border border-slate-200 rounded-xl max-h-[90vh] overflow-hidden w-full flex flex-col shadow-2xl" style={{ maxWidth: width }}>
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-              <h3 className="text-base font-semibold text-slate-900">{title}</h3>
-              <button type="button" className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600" onClick={onClose}><X size={18} /></button>
-            </div>
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 custom-scrollbar"><div>{children}</div></div>
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="relative bg-white border border-slate-200 rounded-xl max-h-[90vh] overflow-hidden w-full flex flex-col shadow-2xl" style={{ maxWidth: width }}>
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+            <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+            <button type="button" className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600" onClick={onClose}><X size={18} /></button>
+          </div>
           </motion.div>
         </div>
       ) : null}
@@ -532,7 +529,7 @@ export function Drawer({ open, onClose, title, children, width = "max-w-md" }) {
       {open && (
         <>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-[2px]" />
-          <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className={cn("fixed inset-y-0 right-0 z-[70] w-full bg-white shadow-2xl flex flex-col border-l border-slate-200", width)}>
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className={cn("fixed inset-y-0 right-0 z-[70] w-full bg-white shadow-2xl flex flex-col border-l border-slate-200", width)}>
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
               <h2 className="text-h2 text-slate-900">{title}</h2>
               <button onClick={onClose} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors"><X size={20} weight="bold" /></button>
