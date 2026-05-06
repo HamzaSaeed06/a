@@ -63,7 +63,24 @@ function App() {
     <WouterRouter base={base}>
       <AuthProvider>
         <AppRoutes />
-        <Toaster position="top-right" toastOptions={{ style: { fontSize: "13px", fontWeight: 500, borderRadius: "10px", padding: "10px 14px" } }} />
+        <Toaster position="top-center" toastOptions={{ 
+          style: { 
+            fontSize: "14px", 
+            fontWeight: 500, 
+            borderRadius: "12px", 
+            padding: "12px 16px",
+            background: "#fff",
+            color: "#0f172a",
+            border: "1px solid #e2e8f0",
+            boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04)"
+          },
+          success: {
+            iconTheme: { primary: "#059669", secondary: "#fff" }
+          },
+          error: {
+            iconTheme: { primary: "#dc2626", secondary: "#fff" }
+          }
+        }} />
       </AuthProvider>
     </WouterRouter>
   );

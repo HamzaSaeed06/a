@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { Gavel, Eye, EyeSlash, ArrowRight } from "@phosphor-icons/react";
 import { useAuth } from "../lib/auth";
 import { apiFetch } from "../lib/api";
 import { Spinner, Button, Input } from "../components/UI";
@@ -9,15 +10,22 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [form, setForm] = useState({ username: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const usernameTrimmed = form.username.trim();
-    if (!usernameTrimmed || !form.password) { toast.error("Please fill in both fields."); return; }
+    if (!usernameTrimmed || !form.password) { 
+      toast.error("Please fill in both fields."); 
+      return; 
+    }
     setLoading(true);
     try {
-      const data = await apiFetch("/auth/login", { method: "POST", body: JSON.stringify({ ...form, username: usernameTrimmed }) });
-      toast.success("Login successful! Redirecting...");
+      const data = await apiFetch("/auth/login", { 
+        method: "POST", 
+        body: JSON.stringify({ ...form, username: usernameTrimmed }) 
+      });
+      toast.success("Login successful!");
       login(data.token, data.user);
     } catch (err) {
       toast.error(err.message || "Invalid credentials.");
@@ -27,139 +35,163 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black relative overflow-hidden">
-      {/* Animated gradient background */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
-        <motion.div 
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-3xl"
-          animate={{ 
-            x: [0, 100, -100, 0],
-            y: [0, -100, 100, 0],
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        />
-        <motion.div 
-          className="absolute top-1/3 right-0 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-3xl"
-          animate={{ 
-            x: [0, -100, 100, 0],
-            y: [0, 100, -100, 0],
-          }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear", delay: 1 }}
-        />
-      </div>
-
-      <motion.div 
-        initial={{ opacity: 0, y: 40, scale: 0.9 }} 
-        animate={{ opacity: 1, y: 0, scale: 1 }} 
-        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} 
-        className="w-full max-w-[420px] px-6 relative z-10"
-      >
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="mb-10 text-center"
-        >
-          <motion.div 
-            whileHover={{ scale: 1.05, rotate: 2 }}
-            whileTap={{ scale: 0.95 }}
-            className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-400 text-white mb-6 shadow-lg shadow-blue-500/30"
+    <div className="min-h-screen flex bg-slate-50">
+      {/* Left Side - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-slate-900 relative overflow-hidden">
+        {/* Subtle pattern overlay */}
+        <div className="absolute inset-0 opacity-10">
+          <div 
+            className="absolute inset-0"
+            style={{
+              backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)`,
+              backgroundSize: "32px 32px"
+            }}
+          />
+        </div>
+        
+        {/* Accent glow */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl" />
+        
+        <div className="relative z-10 flex flex-col justify-center px-16 py-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
-            </svg>
+            <div className="flex items-center gap-3 mb-12">
+              <div className="h-12 w-12 rounded-xl bg-teal-500 flex items-center justify-center">
+                <Gavel size={24} weight="fill" className="text-white" />
+              </div>
+              <span className="text-xl font-bold text-white tracking-tight">Auction OS</span>
+            </div>
+            
+            <h1 className="text-4xl font-bold text-white leading-tight mb-4">
+              Cricket Auction
+              <br />
+              <span className="text-teal-400">Management Platform</span>
+            </h1>
+            
+            <p className="text-slate-400 text-lg max-w-md leading-relaxed">
+              Professional-grade auction management system for cricket leagues. 
+              Streamline your player bidding process.
+            </p>
+            
+            <div className="mt-12 flex items-center gap-6">
+              <div className="flex flex-col">
+                <span className="text-3xl font-bold text-white">500+</span>
+                <span className="text-sm text-slate-400">Players Managed</span>
+              </div>
+              <div className="h-10 w-px bg-slate-700" />
+              <div className="flex flex-col">
+                <span className="text-3xl font-bold text-white">50+</span>
+                <span className="text-sm text-slate-400">Franchises</span>
+              </div>
+              <div className="h-10 w-px bg-slate-700" />
+              <div className="flex flex-col">
+                <span className="text-3xl font-bold text-white">10K+</span>
+                <span className="text-sm text-slate-400">Bids Processed</span>
+              </div>
+            </div>
           </motion.div>
-          <motion.h1 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="text-h1 mb-2 text-white font-bold"
-          >
-            Auction OS
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="text-body text-gray-400"
-          >
-            Premium Cricket Auction Platform
-          </motion.p>
-        </motion.div>
-
+        </div>
+      </div>
+      
+      {/* Right Side - Login Form */}
+      <div className="flex-1 flex items-center justify-center px-6 py-12">
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-8 shadow-2xl shadow-black/50"
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ duration: 0.5 }} 
+          className="w-full max-w-[400px]"
         >
-          <motion.h2 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="text-h3 mb-6 font-semibold text-white"
-          >
-            Sign in to your account
-          </motion.h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Mobile Logo */}
+          <div className="lg:hidden flex items-center gap-3 mb-10">
+            <div className="h-11 w-11 rounded-xl bg-teal-600 flex items-center justify-center">
+              <Gavel size={22} weight="fill" className="text-white" />
+            </div>
+            <span className="text-lg font-bold text-slate-900 tracking-tight">Auction OS</span>
+          </div>
+          
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">Welcome back</h2>
+            <p className="text-slate-500">Sign in to access your dashboard</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
             >
-              <label className="block text-small font-medium text-gray-300 mb-1.5" htmlFor="username">Email or Username</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Email or Username
+              </label>
               <Input 
                 id="username" 
-                placeholder="Enter email or username" 
+                placeholder="Enter your email or username" 
                 autoComplete="username" 
                 value={form.username} 
                 onChange={(e) => setForm((c) => ({ ...c, username: e.target.value }))} 
               />
             </motion.div>
+            
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
             >
-              <label className="block text-small font-medium text-gray-300 mb-1.5" htmlFor="password">Password</label>
-              <Input 
-                id="password" 
-                type="password" 
-                placeholder="••••••••" 
-                autoComplete="current-password" 
-                value={form.password} 
-                onChange={(e) => setForm((c) => ({ ...c, password: e.target.value }))} 
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <Input 
+                  id="password" 
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password" 
+                  autoComplete="current-password" 
+                  value={form.password} 
+                  onChange={(e) => setForm((c) => ({ ...c, password: e.target.value }))} 
+                  className="pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                >
+                  {showPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             </motion.div>
+            
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.7 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.4, delay: 0.3 }}
+              className="pt-2"
             >
               <Button 
                 type="submit" 
                 variant="primary" 
                 loading={loading} 
-                loadingText="Authenticating..." 
-                className="w-full mt-2 h-11 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 shadow-lg shadow-blue-500/30"
+                loadingText="Signing in..." 
+                className="w-full h-12 text-base"
               >
-                Continue to Dashboard
+                Sign in
+                <ArrowRight size={18} weight="bold" />
               </Button>
             </motion.div>
           </form>
-        </motion.div>
 
-        <motion.p 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-          className="text-center text-xs text-gray-500 mt-8"
-        >
-          Secure Access Portal
-        </motion.p>
-      </motion.div>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+            className="text-center text-xs text-slate-400 mt-10"
+          >
+            Protected by enterprise-grade security
+          </motion.p>
+        </motion.div>
+      </div>
     </div>
   );
 }
