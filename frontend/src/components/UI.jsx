@@ -237,10 +237,11 @@ export function Modal({ open, onClose, title, children, width = 480 }) {
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="relative bg-white border border-slate-200 rounded-xl max-h-[90vh] overflow-hidden w-full flex flex-col shadow-2xl" style={{ maxWidth: width }}>
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-            <h3 className="text-base font-semibold text-slate-900">{title}</h3>
-            <button type="button" className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600" onClick={onClose}><X size={18} /></button>
-          </div>
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+              <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+              <button type="button" className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600" onClick={onClose}><X size={18} /></button>
+            </div>
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 custom-scrollbar"><div>{children}</div></div>
           </motion.div>
         </div>
       ) : null}
