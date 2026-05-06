@@ -23,11 +23,40 @@
 }
 
 :root {
-  --bg-color: #f8fafc;
-  --surface-color: #ffffff;
-  --text-main: #0f172a;
-  --text-muted: #3b516f;
-  --border-color: #e2e8f0;
+  /* Premium Dark Theme */
+  --bg-color: #0f172a;
+  --surface-color: #1a1f3a;
+  --surface-light: #242d47;
+  --text-main: #ffffff;
+  --text-muted: #a0aec0;
+  --text-secondary: #cbd5e1;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-light: rgba(255, 255, 255, 0.12);
+  
+  /* Premium Accent Colors */
+  --accent-gold: #fbbf24;
+  --accent-gold-light: #fcd34d;
+  --accent-blue: #3b82f6;
+  --accent-blue-bright: #60a5fa;
+  --accent-purple: #a78bfa;
+  --accent-purple-bright: #c4b5fd;
+  
+  /* Status Colors */
+  --status-success: #10b981;
+  --status-success-light: #6ee7b7;
+  --status-warning: #f59e0b;
+  --status-warning-light: #fcd34d;
+  --status-danger: #ef4444;
+  --status-danger-light: #fca5a5;
+  --status-info: #06b6d4;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.6);
+  --shadow-glow-gold: 0 0 20px rgba(251, 191, 36, 0.3);
+  --shadow-glow-blue: 0 0 20px rgba(59, 130, 246, 0.3);
 }
 
 * { box-sizing: border-box; }
@@ -65,16 +94,21 @@ button, input, select, textarea { font: inherit; }
   background-color: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
   transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+  backdrop-filter: blur(10px);
 }
-.surface:hover { box-shadow: 0 4px 5px -4px rgba(0,0,0,0.2); }
+.surface:hover {
+  box-shadow: 0 4px 5px -4px rgba(59, 130, 246, 0.3);
+  border-color: rgba(59, 130, 246, 0.2);
+}
 
 .surface-elevated {
-  background-color: var(--surface-color);
-  border: 1px solid var(--border-color);
+  background-color: var(--surface-light);
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5), 0 2px 4px -2px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.4);
+  backdrop-filter: blur(10px);
 }
 
 @keyframes pulse-soft {
@@ -82,6 +116,95 @@ button, input, select, textarea { font: inherit; }
   50% { opacity: 0.8; transform: scale(1.05); }
 }
 .animate-pulse-soft { animation: pulse-soft 2s cubic-bezier(0.4,0,0.6,1) infinite; }
+
+/* Premium Glow Effects */
+@keyframes glow-gold {
+  0%, 100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.4), 0 0 40px rgba(251, 191, 36, 0.2); }
+  50% { box-shadow: 0 0 30px rgba(251, 191, 36, 0.6), 0 0 60px rgba(251, 191, 36, 0.3); }
+}
+.animate-glow-gold { animation: glow-gold 3s ease-in-out infinite; }
+
+@keyframes glow-blue {
+  0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), 0 0 40px rgba(59, 130, 246, 0.2); }
+  50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.6), 0 0 60px rgba(59, 130, 246, 0.3); }
+}
+.animate-glow-blue { animation: glow-blue 3s ease-in-out infinite; }
+
+/* Shimmer effect */
+@keyframes shimmer {
+  0% { background-position: -1200px 0; }
+  100% { background-position: 1200px 0; }
+}
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+  background: linear-gradient(
+    90deg,
+    var(--surface-color) 0%,
+    var(--surface-light) 50%,
+    var(--surface-color) 100%
+  );
+  background-size: 1200px 100%;
+}
+
+/* Bounce entrance */
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.animate-bounce-in { animation: bounceIn 0.6s ease-out; }
+
+/* Slide and fade */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.animate-slide-in-right { animation: slideInRight 0.4s ease-out; }
+
+/* Shake effect for errors */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+.animate-shake { animation: shake 0.5s ease-in-out; }
+
+/* Pulse effect */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.animate-pulse { animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite; }
+
+/* Ripple effect */
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+.animate-ripple { animation: ripple 0.6s ease-out; }
 
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }

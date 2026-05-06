@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Broadcast, CurrencyCircleDollar, FlagBanner, TrendUp, UsersThree, Warehouse } from "@phosphor-icons/react";
+import { motion } from "framer-motion";
 import DashboardLayout from "../../components/DashboardLayout";
 import { PageHeader, SectionCard, StatCard, Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "../../components/UI";
 import { apiFetch } from "../../lib/api";
@@ -19,16 +20,43 @@ export default function AdminDashboard() {
   return (
     <DashboardLayout allowedRoles={["Admin", "Super Admin"]}>
       <PageHeader title="Auction Control Center" />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-        <StatCard title="Teams" value={stats?.total_teams ?? "—"} icon={UsersThree} tone="accent" />
-        <StatCard title="Players" value={stats?.total_players ?? "—"} icon={Warehouse} />
-        <StatCard title="Sold" value={stats?.sold_players ?? "—"} icon={FlagBanner} tone="success" />
-        <StatCard title="Unsold" value={stats?.unsold_players ?? "—"} icon={Broadcast} tone="warning" />
-        <StatCard title="Total Bids" value={stats?.total_bids ?? "—"} icon={TrendUp} tone="accent" />
-        <StatCard title="Total Spend" value={formatCurrency(stats?.total_spent)} icon={CurrencyCircleDollar} tone="success" />
-      </div>
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0 },
+          visible: {
+            opacity: 1,
+            transition: {
+              staggerChildren: 0.1,
+              delayChildren: 0.2,
+            },
+          },
+        }}
+        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6"
+      >
+        {[
+          { title: "Teams", value: stats?.total_teams ?? "—", icon: UsersThree, tone: "accent" },
+          { title: "Players", value: stats?.total_players ?? "—", icon: Warehouse },
+          { title: "Sold", value: stats?.sold_players ?? "—", icon: FlagBanner, tone: "success" },
+          { title: "Unsold", value: stats?.unsold_players ?? "—", icon: Broadcast, tone: "warning" },
+          { title: "Total Bids", value: stats?.total_bids ?? "—", icon: TrendUp, tone: "accent" },
+          { title: "Total Spend", value: formatCurrency(stats?.total_spent), icon: CurrencyCircleDollar, tone: "success" },
+        ].map((card, idx) => (
+          <motion.div
+            key={idx}
+            variants={{
+              hidden: { opacity: 0, y: 20 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+            }}
+          >
+            <StatCard {...card} />
+          </motion.div>
+        ))}
+      </motion.div>
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <SectionCard title="Live Auction Feed" padded={false}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }}>
+          <SectionCard title="Live Auction Feed" padded={false}>
           <Table>
             <TableHeader>
               <TableRow>
@@ -60,8 +88,10 @@ export default function AdminDashboard() {
               )}
             </TableBody>
           </Table>
-        </SectionCard>
-        <SectionCard title="Operational Guidelines">
+          </SectionCard>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.4 }}>
+          <SectionCard title="Operational Guidelines">
           <div className="grid gap-4">
             {[
               { text: "Ensure the player pool is correctly ordered before initiating the auction.", icon: "01" },
@@ -74,7 +104,8 @@ export default function AdminDashboard() {
               </div>
             ))}
           </div>
-        </SectionCard>
+          </SectionCard>
+        </motion.div>
       </div>
     </DashboardLayout>
   );

@@ -14,17 +14,41 @@ const TIMER_MAX = 60;
 function TimerRing({ timeLeft, isActive }) {
   const size = 160, stroke = 6, r = (size - stroke) / 2, circ = 2 * Math.PI * r;
   const progress = Math.max(0, timeLeft / TIMER_MAX), dash = circ * progress;
-  const color = timeLeft > 10 ? "#3b82f6" : timeLeft > 5 ? "#f59e0b" : "#ef4444";
-  const textColor = timeLeft > 10 ? "text-blue-600" : timeLeft > 5 ? "text-amber-600" : "text-red-600";
+  const color = timeLeft > 10 ? "#60a5fa" : timeLeft > 5 ? "#fbbf24" : "#ef4444";
+  const glowColor = timeLeft > 10 ? "rgba(96, 165, 250, 0.4)" : timeLeft > 5 ? "rgba(251, 191, 36, 0.4)" : "rgba(239, 68, 68, 0.4)";
+  const textColor = timeLeft > 10 ? "text-blue-400" : timeLeft > 5 ? "text-amber-400" : "text-red-400";
+  const hasGlow = timeLeft <= 10 && isActive;
+  
   return (
-    <div className={`relative flex items-center justify-center ${timeLeft <= 5 && isActive ? "animate-pulse" : ""}`}>
-      <svg width={size} height={size} className="-rotate-90 drop-shadow-sm">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f1f5f9" strokeWidth={stroke} />
-        <motion.circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ - dash} animate={{ strokeDashoffset: circ - dash }} transition={{ duration: 0.4 }} />
+    <div className={cn("relative flex items-center justify-center", hasGlow && "animate-glow-blue")}>
+      <svg width={size} height={size} className="-rotate-90 drop-shadow-lg" style={{
+        filter: hasGlow ? `drop-shadow(0 0 20px ${glowColor})` : "drop-shadow(0 2px 8px rgba(0,0,0,0.3))"
+      }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#374151" strokeWidth={stroke} opacity={0.3} />
+        <motion.circle 
+          cx={size / 2} 
+          cy={size / 2} 
+          r={r} 
+          fill="none" 
+          stroke={color} 
+          strokeWidth={stroke} 
+          strokeLinecap="round" 
+          strokeDasharray={circ} 
+          strokeDashoffset={circ - dash} 
+          animate={{ strokeDashoffset: circ - dash }} 
+          transition={{ duration: 0.4 }}
+        />
       </svg>
       <div className="absolute flex flex-col items-center">
-        <motion.p key={timeLeft} initial={{ scale: 1.15 }} animate={{ scale: 1 }} className={`text-5xl font-black tabular-nums tracking-tight ${textColor}`}>{timeLeft}</motion.p>
-        <p className="text-[0.6rem] capitalize font-bold tracking-[0.2em] text-slate-400 mt-1">seconds</p>
+        <motion.p 
+          key={timeLeft} 
+          initial={{ scale: 1.2, opacity: 0 }} 
+          animate={{ scale: 1, opacity: 1 }} 
+          className={cn("text-5xl font-black tabular-nums tracking-tight", textColor)}
+        >
+          {timeLeft}
+        </motion.p>
+        <p className="text-[0.6rem] capitalize font-bold tracking-[0.2em] text-gray-400 mt-1">seconds</p>
       </div>
     </div>
   );
@@ -176,28 +200,104 @@ export default function LiveAuctionPage() {
                       </div>
                     </div>
                     <div className="lg:col-span-8">
-                      <div className="surface bg-white p-12 flex flex-col items-center justify-center h-full relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-8 opacity-[0.02]"><Money size={240} weight="fill" /></div>
+                      <div className="surface bg-gray-800 p-12 flex flex-col items-center justify-center h-full relative overflow-hidden border-gray-700">
+                        <div className="absolute top-0 right-0 p-8 opacity-[0.05] text-blue-400"><Money size={240} weight="fill" /></div>
+                        <motion.div 
+                          className="absolute inset-0 opacity-0"
+                          animate={highestBidder ? { opacity: [0, 0.15, 0] } : {}}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                          style={{
+                            background: "radial-gradient(circle at center, rgba(59, 130, 246, 0.3) 0%, transparent 70%)"
+                          }}
+                        />
                         <div className="text-center relative z-10 w-full max-w-sm">
-                          <h1 className="text-[5rem] font-bold text-slate-950 tracking-tighter leading-none mb-2 tabular-nums">{formatCurrency(highestBid || currentPlayer.base_price)}</h1>
-                          <p className="text-sub text-slate-400 tracking-[0.2em] mb-12">HIGHEST FLOOR BID</p>
-                          <div className="flex items-center justify-center gap-3 mb-12">
-                            <div className={cn("h-10 w-10 rounded-full flex items-center justify-center shadow-sm border", highestBidder ? "bg-blue-600 border-blue-500 text-white" : "bg-slate-950 border-slate-800 text-white")}>
+                          <motion.h1 
+                            key={highestBid}
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ duration: 0.4 }}
+                            className="text-[5rem] font-bold text-white tracking-tighter leading-none mb-2 tabular-nums drop-shadow-lg"
+                          >
+                            {formatCurrency(highestBid || currentPlayer.base_price)}
+                          </motion.h1>
+                          <p className="text-sub text-gray-400 tracking-[0.2em] mb-12">HIGHEST FLOOR BID</p>
+                          <motion.div 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex items-center justify-center gap-3 mb-12"
+                          >
+                            <motion.div
+                              animate={highestBidder ? { scale: [1, 1.1, 1] } : {}}
+                              transition={{ duration: 1, repeat: Infinity }}
+                              className={cn("h-10 w-10 rounded-full flex items-center justify-center shadow-lg border transition-all", highestBidder ? "bg-blue-600 border-blue-400 text-white shadow-blue-500/50" : "bg-gray-700 border-gray-600 text-gray-400")}
+                            >
                               {highestBidder ? <CheckCircle size={20} weight="fill" /> : <MonitorPlay size={20} weight="fill" />}
-                            </div>
-                            <span className="text-lg font-bold text-slate-900 tracking-tight">{highestBidder ? `Leading: ${highestBidder.team_name}` : "Awaiting First Bid"}</span>
-                          </div>
+                            </motion.div>
+                            <motion.span 
+                              key={highestBidder?.team_id}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              className="text-lg font-bold text-white tracking-tight"
+                            >
+                              {highestBidder ? `Leading: ${highestBidder.team_name}` : "Awaiting First Bid"}
+                            </motion.span>
+                          </motion.div>
                           <div className="flex items-center gap-4 mb-10">
-                            <div className="h-12 w-12 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-50"><span className="text-2xl">−</span></div>
-                            <div className="flex-1 h-12 rounded-lg border border-slate-200 flex items-center justify-center bg-white"><span className="text-ui-semibold text-slate-900 font-bold">{formatCurrency(highestBid)}</span></div>
-                            <div className="h-12 w-12 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-50"><span className="text-2xl">+</span></div>
+                            <motion.button 
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="h-12 w-12 rounded-lg border border-gray-600 flex items-center justify-center text-gray-400 hover:bg-gray-700 bg-gray-900 transition-colors"
+                            >
+                              <span className="text-2xl">−</span>
+                            </motion.button>
+                            <motion.div 
+                              className="flex-1 h-12 rounded-lg border border-gray-600 flex items-center justify-center bg-gray-900"
+                            >
+                              <motion.span 
+                                key={highestBid}
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="text-ui-semibold text-white font-bold"
+                              >
+                                {formatCurrency(highestBid)}
+                              </motion.span>
+                            </motion.div>
+                            <motion.button 
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="h-12 w-12 rounded-lg border border-gray-600 flex items-center justify-center text-gray-400 hover:bg-gray-700 bg-gray-900 transition-colors"
+                            >
+                              <span className="text-2xl">+</span>
+                            </motion.button>
                           </div>
-                          <div className="w-full relative h-1 bg-slate-100 rounded-full mb-6 overflow-hidden">
-                            <motion.div className="absolute top-0 left-0 h-full bg-blue-600" initial={{ width: "100%" }} animate={{ width: `${(timeLeft / TIMER_MAX) * 100}%` }} transition={{ duration: 1, ease: "linear" }} />
+                          <div className="w-full relative h-1 bg-gray-700 rounded-full mb-6 overflow-hidden">
+                            <motion.div 
+                              className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full" 
+                              initial={{ width: "100%" }} 
+                              animate={{ width: `${(timeLeft / TIMER_MAX) * 100}%` }} 
+                              transition={{ duration: 1, ease: "linear" }}
+                            />
                           </div>
-                          <div className="flex items-center justify-center gap-2 text-slate-500"><Timer size={18} weight="bold" /><span className="text-xs font-bold uppercase tracking-widest">DRAFT CLOSES IN {timeLeft}S</span></div>
+                          <motion.div 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex items-center justify-center gap-2 text-gray-400"
+                          >
+                            <Timer size={18} weight="bold" />
+                            <span className="text-xs font-bold uppercase tracking-widest">DRAFT CLOSES IN {timeLeft}S</span>
+                          </motion.div>
                           <div className="mt-12 w-full">
-                            <Button variant="primary" className="w-full h-16 text-lg tracking-widest uppercase rounded-xl bg-slate-950 hover:bg-slate-900" onClick={sellPlayer} disabled={!highestBidder}>CONFIRM SALE {formatCurrency(highestBid)}<Trophy size={20} weight="fill" className="ml-2" /></Button>
+                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                              <Button 
+                                variant="primary" 
+                                className="w-full h-16 text-lg tracking-widest uppercase rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 shadow-lg shadow-emerald-500/30" 
+                                onClick={sellPlayer} 
+                                disabled={!highestBidder}
+                              >
+                                CONFIRM SALE {formatCurrency(highestBid)}
+                                <Trophy size={20} weight="fill" className="ml-2" />
+                              </Button>
+                            </motion.div>
                           </div>
                         </div>
                       </div>

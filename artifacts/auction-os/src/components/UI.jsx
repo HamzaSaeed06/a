@@ -25,11 +25,11 @@ import { cn } from "../lib/format";
 import { toast as hotToast } from "react-hot-toast";
 
 export const Button = React.forwardRef(({ className, variant = "primary", size = "default", loading = false, loadingText, children, ...props }, ref) => {
-  const baseStyles = "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all whitespace-nowrap border border-transparent disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
+  const baseStyles = "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all whitespace-nowrap border border-transparent disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer relative overflow-hidden";
   const variants = {
-    primary: "bg-slate-900 text-white shadow-sm hover:bg-slate-700 hover:shadow active:scale-[0.98]",
-    outline: "bg-transparent text-slate-900 border-slate-200 hover:bg-slate-50 hover:border-slate-300 active:bg-slate-100",
-    ghost: "bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:bg-slate-200"
+    primary: "bg-blue-600 text-white shadow-lg hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-500/30 active:scale-[0.97]",
+    outline: "bg-transparent text-blue-400 border-blue-500/30 hover:bg-blue-500/10 hover:border-blue-400 active:bg-blue-500/20",
+    ghost: "bg-transparent text-gray-300 hover:bg-gray-700/30 hover:text-gray-100 active:bg-gray-700/50"
   };
   const sizes = {
     default: "h-10 px-5 text-ui-semibold",
@@ -37,33 +37,50 @@ export const Button = React.forwardRef(({ className, variant = "primary", size =
     icon: "h-9 w-9 justify-center"
   };
   return (
-    <button type={props.type || "button"} ref={ref} disabled={loading || props.disabled} className={cn(baseStyles, variants[variant], sizes[size], className)} {...props}>
-      {loading ? (<><Spinner size={16} color={variant === "primary" ? "white" : "slate"} />{loadingText || children}</>) : children}
-    </button>
+    <motion.button
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.95 }}
+      type={props.type || "button"}
+      ref={ref}
+      disabled={loading || props.disabled}
+      className={cn(baseStyles, variants[variant], sizes[size], className)}
+      {...props}
+    >
+      {loading ? (<><Spinner size={16} color={variant === "primary" ? "white" : "blue"} />{loadingText || children}</>) : children}
+    </motion.button>
   );
 });
 Button.displayName = "Button";
 
 export const Input = React.forwardRef(({ className, icon: Icon, ...props }, ref) => (
-  <div className="relative w-full flex items-center">
-    {Icon && <Icon size={18} className="absolute left-3 text-slate-500 pointer-events-none" />}
-    <input ref={ref} className={cn("w-full rounded-md border border-slate-200 bg-white h-10 px-3 text-ui text-slate-900 outline-none transition-all placeholder:text-slate-500 focus:border-slate-400 focus:ring-2 focus:ring-slate-100", Icon && "pl-10", className)} {...props} />
+  <div className="relative w-full flex items-center group">
+    {Icon && <Icon size={18} className="absolute left-3 text-gray-400 pointer-events-none group-focus-within:text-blue-400 transition-colors" />}
+    <motion.input
+      ref={ref}
+      whileFocus={{ scale: 1.01 }}
+      className={cn("w-full rounded-md border border-gray-700 bg-gray-900/50 h-10 px-3 text-ui text-white outline-none transition-all placeholder:text-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:bg-gray-900", Icon && "pl-10", className)}
+      {...props}
+    />
   </div>
 ));
 Input.displayName = "Input";
 
 export const Badge = ({ children, variant = "neutral", className }) => {
   const variants = {
-    success: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    danger: "bg-red-100 text-red-700 border-red-200",
-    neutral: "bg-slate-100 text-slate-600 border-slate-200",
-    gold: "bg-amber-100 text-amber-700 border-amber-200",
-    accent: "bg-purple-100 text-purple-700 border-purple-200",
+    success: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+    danger: "bg-red-500/20 text-red-300 border-red-500/30",
+    neutral: "bg-gray-700/40 text-gray-300 border-gray-600/40",
+    gold: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+    accent: "bg-purple-500/20 text-purple-300 border-purple-500/30",
   };
   return (
-    <span className={cn("inline-flex items-center px-2.5 py-1 rounded-md text-ui-xs font-bold tracking-wide capitalize border", variants[variant] || variants.neutral, className)}>
+    <motion.span
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={cn("inline-flex items-center px-2.5 py-1 rounded-md text-ui-xs font-bold tracking-wide capitalize border backdrop-blur-sm", variants[variant] || variants.neutral, className)}
+    >
       {children}
-    </span>
+    </motion.span>
   );
 };
 
@@ -85,14 +102,14 @@ export const RoleBadge = ({ role, className }) => {
 };
 
 export const Table = React.forwardRef(({ className, ...props }, ref) => (
-  <div className="w-full overflow-auto relative border-t border-slate-100 no-scrollbar">
+  <div className="w-full overflow-auto relative border-t border-gray-700 no-scrollbar">
     <table ref={ref} className={cn("w-full border-collapse text-left", className)} {...props} />
   </div>
 ));
 Table.displayName = "Table";
 
 export const TableHeader = React.forwardRef(({ className, ...props }, ref) => (
-  <thead ref={ref} className={cn("sticky top-0 z-10 bg-slate-50 border-b border-slate-200", className)} {...props} />
+  <thead ref={ref} className={cn("sticky top-0 z-10 bg-gray-900/50 border-b border-gray-700 backdrop-blur-sm", className)} {...props} />
 ));
 TableHeader.displayName = "TableHeader";
 
@@ -102,30 +119,45 @@ export const TableBody = React.forwardRef(({ className, ...props }, ref) => (
 TableBody.displayName = "TableBody";
 
 export const TableRow = React.forwardRef(({ className, ...props }, ref) => (
-  <tr ref={ref} className={cn("border-b border-slate-200 transition-colors hover:bg-slate-50/50", className)} {...props} />
+  <motion.tr
+    ref={ref}
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    whileHover={{ backgroundColor: "rgba(59, 130, 246, 0.1)" }}
+    className={cn("border-b border-gray-700 transition-colors", className)}
+    {...props}
+  />
 ));
 TableRow.displayName = "TableRow";
 
 export const TableHead = React.forwardRef(({ className, ...props }, ref) => (
-  <th ref={ref} className={cn("h-12 px-4 text-left align-middle text-sub text-slate-900", className)} {...props} />
+  <th ref={ref} className={cn("h-12 px-4 text-left align-middle text-sub text-gray-300", className)} {...props} />
 ));
 TableHead.displayName = "TableHead";
 
 export const TableCell = React.forwardRef(({ className, ...props }, ref) => (
-  <td ref={ref} className={cn("px-4 py-2 align-middle text-ui text-slate-900 h-12", className)} {...props} />
+  <td ref={ref} className={cn("px-4 py-2 align-middle text-ui text-gray-300 h-12", className)} {...props} />
 ));
 TableCell.displayName = "TableCell";
 
 export function StatCard({ title, value, sub, icon: Icon, tone = "default" }) {
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }} className="bg-white border border-slate-200 rounded-md shadow-sm p-6 transition-all hover:shadow-md">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -8, transition: { duration: 0.2 } }}
+      transition={{ duration: 0.5 }}
+      className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-lg shadow-lg p-6 transition-all hover:shadow-xl hover:shadow-blue-500/20"
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-sub text-slate-900 mb-2">{title}</p>
-          <p className="text-h1 text-slate-900 truncate tracking-tight">{value}</p>
-          {sub ? <p className="mt-1 text-ui-xs text-slate-600 font-medium">{sub}</p> : null}
+          <p className="text-sub text-gray-400 mb-2">{title}</p>
+          <p className="text-h1 text-white truncate tracking-tight font-bold">
+            {typeof value === 'number' ? value.toLocaleString() : value}
+          </p>
+          {sub ? <p className="mt-1 text-ui-xs text-gray-500 font-medium">{sub}</p> : null}
         </div>
-        {Icon ? <div className="shrink-0 text-slate-500"><Icon size={24} weight="regular" /></div> : null}
+        {Icon ? <motion.div whileHover={{ scale: 1.1, rotate: 5 }} className="shrink-0 text-blue-400"><Icon size={24} weight="regular" /></motion.div> : null}
       </div>
     </motion.div>
   );
@@ -145,20 +177,25 @@ export function PageHeader({ title, subtitle, action }) {
 
 export function SectionCard({ title, sub, action, children, padded = true, className, fullHeight = false }) {
   return (
-    <section className={cn("bg-white border border-slate-200 rounded-md shadow-sm overflow-hidden flex flex-col", fullHeight && "min-h-[calc(100vh-280px)] lg:min-h-[calc(100vh-220px)]", className)}>
+    <motion.section
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className={cn("bg-gray-800/50 border border-gray-700 rounded-lg shadow-lg overflow-hidden flex flex-col backdrop-blur-sm transition-all hover:border-gray-600", fullHeight && "min-h-[calc(100vh-280px)] lg:min-h-[calc(100vh-220px)]", className)}
+    >
       {(title || action || sub) && (
-        <div className="border-b border-slate-200 px-6 py-5 bg-slate-50/50">
+        <div className="border-b border-gray-700 px-6 py-5 bg-gray-900/30 backdrop-blur-sm">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              {title ? <h2 className="text-h3 text-slate-900">{title}</h2> : null}
-              {sub ? <p className="mt-1 text-ui text-slate-900">{sub}</p> : null}
+              {title ? <motion.h2 className="text-h3 text-white">{title}</motion.h2> : null}
+              {sub ? <p className="mt-1 text-ui text-gray-400">{sub}</p> : null}
             </div>
             {action ? <div className="flex flex-wrap gap-2.5">{action}</div> : null}
           </div>
         </div>
       )}
       <div className={cn("flex-1 flex flex-col", padded && "p-6")}>{children}</div>
-    </section>
+    </motion.section>
   );
 }
 
@@ -179,11 +216,11 @@ export function Modal({ open, onClose, title, children, width = 480 }) {
     <AnimatePresence>
       {open ? (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/25 backdrop-blur-[2px]" onClick={onClose} />
-          <motion.div initial={{ opacity: 0, scale: 0.99 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.99 }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="relative bg-white border border-slate-200 rounded-md max-h-[90vh] overflow-hidden w-full flex flex-col shadow-2xl" style={{ maxWidth: width }}>
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-              <h3 className="text-sm font-bold text-slate-900 capitalize tracking-wider">{title}</h3>
-              <button type="button" className="rounded-md p-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700" onClick={onClose}><X size={18} /></button>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={onClose} />
+          <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="relative bg-gray-800 border border-gray-700 rounded-lg max-h-[90vh] overflow-hidden w-full flex flex-col shadow-2xl" style={{ maxWidth: width }}>
+            <div className="flex items-center justify-between border-b border-gray-700 px-5 py-3 bg-gray-900/50">
+              <h3 className="text-sm font-bold text-white capitalize tracking-wider">{title}</h3>
+              <button type="button" className="rounded-md p-1 text-gray-400 transition hover:bg-gray-700 hover:text-white" onClick={onClose}><X size={18} /></button>
             </div>
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 custom-scrollbar"><div>{children}</div></div>
           </motion.div>
