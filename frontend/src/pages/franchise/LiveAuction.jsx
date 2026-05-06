@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle,
   Clock,
@@ -10,15 +10,15 @@ import {
   Handbag,
   MonitorPlay,
   User,
-  UsersThree,
+  TrendUp,
 } from "@phosphor-icons/react";
 import DashboardLayout from "../../components/DashboardLayout";
 import {
   SectionCard,
   useToast,
   Button,
-  Toast,
   Spinner,
+  Skeleton,
 } from "../../components/UI";
 import { formatCurrency, cn } from "../../lib/format";
 import { getSocket } from "../../lib/socket";
@@ -35,6 +35,7 @@ export default function FranchiseLiveAuction() {
   const [teamStats, setTeamStats] = useState([]);
   const [recentlySold, setRecentlySold] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const { toast } = useToast();
   const socketRef = useRef(null);
 
@@ -97,6 +98,8 @@ export default function FranchiseLiveAuction() {
       setMyTeam(teamRes?.data || teamRes);
     } catch (err) {
       console.error(err);
+    } finally {
+      setInitialLoading(false);
     }
   };
 
@@ -129,233 +132,291 @@ export default function FranchiseLiveAuction() {
         : Math.max(highestBid + step, bidAmount - step),
     );
   };
+  
   const isUrgent = timeLeft <= 10 && isActive;
   const isWarning = timeLeft <= 30 && isActive;
+  const isLeading = highestBidder?.team_id === myTeam?.team_id;
 
   return (
     <DashboardLayout allowedRoles={["Franchise"]}>
       <div className="flex flex-col gap-6">
+        {/* Main Auction Area */}
         {!currentPlayer ? (
-          <div className="surface bg-white py-16 px-10 flex flex-col items-center justify-center text-center border border-slate-100 shadow-sm rounded-lg relative overflow-hidden">
-            <div className="h-14 w-14 rounded-full bg-slate-50 flex items-center justify-center mb-5">
-              <Broadcast
-                size={28}
-                weight="duotone"
-                className="text-slate-400"
-              />
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white border border-slate-200 rounded-2xl py-20 px-10 flex flex-col items-center justify-center text-center shadow-sm"
+          >
+            <div className="h-16 w-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-6">
+              <Broadcast size={32} weight="duotone" className="text-slate-400" />
             </div>
-            <h2 className="text-ui-semibold text-slate-900 capitalize mb-1.5">
+            <h2 className="text-lg font-semibold text-slate-900 mb-2">
               Auction floor is currently idle
             </h2>
-            <p className="text-slate-400 max-w-sm mx-auto text-[11px] leading-relaxed">
+            <p className="text-slate-500 max-w-md mx-auto text-sm leading-relaxed">
               The session is waiting for the administrator to introduce the next
               player. Live bid updates will appear here automatically.
             </p>
-          </div>
+          </motion.div>
         ) : (
-          <div className="grid gap-8 lg:grid-cols-12 items-stretch min-h-[580px]">
+          <div className="grid gap-6 lg:grid-cols-12 items-stretch">
+            {/* Player Card */}
             <div className="lg:col-span-4">
-              <SectionCard
-                padded={false}
-                className="surface h-full flex flex-col bg-white overflow-hidden shadow-sm group"
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="bg-white border border-slate-200 rounded-2xl overflow-hidden h-full flex flex-col shadow-sm"
               >
-                <div className="flex-1 p-8 pb-4 flex flex-col items-center">
-                  <div className="h-44 w-44 rounded-full border border-slate-100 bg-slate-50/50 shadow-sm overflow-hidden relative group-hover:scale-[1.02] transition-transform duration-500">
+                {/* Player Image */}
+                <div className="p-8 pb-4 flex flex-col items-center">
+                  <motion.div 
+                    whileHover={{ scale: 1.02 }}
+                    className="h-40 w-40 rounded-full border-4 border-slate-100 bg-slate-50 overflow-hidden relative shadow-lg"
+                  >
                     {currentPlayer.image_url ? (
                       <motion.img
                         key={currentPlayer.player_id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
                         src={currentPlayer.image_url}
                         alt={currentPlayer.name}
-                        className="h-full w-full object-contain drop-shadow-xl"
+                        className="h-full w-full object-cover"
                       />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center text-slate-300">
-                        <User size={64} weight="light" />
+                        <User size={64} weight="duotone" />
                       </div>
                     )}
-                  </div>
-                  <div className="mt-8 text-center">
-                    <p className="text-[10px] font-bold text-slate-400 tracking-[0.2em] uppercase mb-1.5">
-                      CURRENT DRAFT
+                  </motion.div>
+                  
+                  <div className="mt-6 text-center">
+                    <p className="text-[10px] font-bold text-teal-600 tracking-[0.2em] uppercase mb-1.5">
+                      Current Draft
                     </p>
-                    <h2 className="text-2xl font-bold text-slate-900 leading-tight mb-1 uppercase tracking-tight">
+                    <h2 className="text-xl font-bold text-slate-900 leading-tight mb-1 tracking-tight">
                       {currentPlayer.name}
                     </h2>
-                    <p className="text-ui font-medium text-slate-500 capitalize">
+                    <p className="text-sm font-medium text-slate-500 capitalize">
                       {currentPlayer.role}
                     </p>
                   </div>
                 </div>
+                
+                {/* Stats Grid */}
                 <div className="px-6 pb-6">
-                  <div className="grid grid-cols-4 border border-slate-100 rounded-lg overflow-hidden bg-white divide-x divide-slate-100">
+                  <div className="grid grid-cols-4 border border-slate-100 rounded-xl overflow-hidden bg-slate-50 divide-x divide-slate-100">
                     {[
                       { label: "M", val: currentPlayer.matches },
                       { label: "W", val: currentPlayer.wickets },
                       { label: "EC", val: currentPlayer.economy },
                       { label: "B", val: currentPlayer.best_bowling },
                     ].map((stat) => (
-                      <div
-                        key={stat.label}
-                        className="py-3 px-1 flex flex-col items-center justify-center"
-                      >
+                      <div key={stat.label} className="py-4 px-2 flex flex-col items-center justify-center">
                         <span className="text-[10px] font-bold text-slate-400 uppercase mb-1">
                           {stat.label}
                         </span>
-                        <span className="text-ui-xs font-bold text-slate-900">
+                        <span className="text-sm font-bold text-slate-900">
                           {stat.val || 0}
                         </span>
                       </div>
                     ))}
                   </div>
                 </div>
-                <div className="bg-slate-50/50 border-t border-slate-100 px-6 py-4 flex items-center justify-between mt-auto">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
-                    BASE
+                
+                {/* Base Price */}
+                <div className="bg-slate-50 border-t border-slate-100 px-6 py-4 flex items-center justify-between mt-auto">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Base Price
                   </span>
-                  <span className="text-ui-semibold text-slate-950 font-bold">
+                  <span className="text-base font-bold text-slate-900">
                     {formatCurrency(currentPlayer.base_price)}
                   </span>
                 </div>
-              </SectionCard>
+              </motion.div>
             </div>
+            
+            {/* Bidding Panel */}
             <div className="lg:col-span-8">
-              <SectionCard className="surface h-full bg-white flex flex-col items-center justify-center p-12 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-12 opacity-[0.02]">
-                  <MonitorPlay size={280} weight="fill" />
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className={cn(
+                  "bg-white border rounded-2xl h-full flex flex-col items-center justify-center p-10 relative overflow-hidden shadow-sm transition-colors duration-300",
+                  isLeading ? "border-teal-200 bg-teal-50/30" : "border-slate-200"
+                )}
+              >
+                {/* Subtle pattern */}
+                <div className="absolute top-0 right-0 p-8 opacity-[0.03]">
+                  <MonitorPlay size={240} weight="fill" />
                 </div>
-                <div className="text-center relative z-10 w-full max-w-md">
-                  <h1 className="text-[6rem] font-bold text-slate-950 tracking-tighter leading-none mb-2 tabular-nums">
+                
+                <div className="text-center relative z-10 w-full max-w-lg">
+                  {/* Current Bid Display */}
+                  <motion.h1 
+                    key={highestBid}
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="text-5xl md:text-6xl font-bold text-slate-900 tracking-tight leading-none mb-2 tabular-nums"
+                  >
                     {formatCurrency(highestBid)}
-                  </h1>
-                  <p className="text-sub text-slate-400 tracking-[0.2em] mb-12 uppercase">
+                  </motion.h1>
+                  <p className="text-xs font-bold text-slate-400 tracking-[0.2em] mb-10 uppercase">
                     Highest Floor Bid
                   </p>
-                  <div className="flex items-center justify-center gap-3 mb-12">
-                    <div
+                  
+                  {/* Leading Indicator */}
+                  <div className="flex items-center justify-center gap-3 mb-10">
+                    <motion.div
+                      animate={isLeading ? { scale: [1, 1.1, 1] } : {}}
+                      transition={{ duration: 1.5, repeat: Infinity }}
                       className={cn(
-                        "h-11 w-11 rounded-full flex items-center justify-center shadow-sm border transition-all duration-500",
-                        highestBidder?.team_id === myTeam?.team_id
-                          ? "bg-blue-600 border-blue-500 text-white"
-                          : "bg-slate-950 border-slate-800 text-white",
+                        "h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-300",
+                        isLeading
+                          ? "bg-teal-600 text-white shadow-lg shadow-teal-500/30"
+                          : "bg-slate-100 text-slate-500",
                       )}
                     >
-                      {highestBidder?.team_id === myTeam?.team_id ? (
-                        <CheckCircle size={22} weight="fill" />
+                      {isLeading ? (
+                        <CheckCircle size={24} weight="fill" />
                       ) : (
-                        <MonitorPlay size={22} weight="fill" />
+                        <TrendUp size={24} weight="bold" />
                       )}
-                    </div>
-                    <span className="text-xl font-bold text-slate-900 tracking-tight">
+                    </motion.div>
+                    <span className={cn(
+                      "text-lg font-bold tracking-tight",
+                      isLeading ? "text-teal-700" : "text-slate-700"
+                    )}>
                       {highestBidder
-                        ? highestBidder.team_id === myTeam?.team_id
+                        ? isLeading
                           ? "Your Bid is Leading"
                           : `Leading: ${highestBidder.team_name}`
                         : "Awaiting First Bid"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-4 mb-10 px-4">
-                    <button
+                  
+                  {/* Bid Controls */}
+                  <div className="flex items-center gap-4 mb-8 px-4">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       onClick={() => adjustBid(false)}
-                      className="h-14 w-14 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-50 active:scale-95 transition-all shadow-sm"
+                      className="h-14 w-14 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 active:bg-slate-100 transition-all bg-white shadow-sm"
                     >
                       <Minus size={24} weight="bold" />
-                    </button>
-                    <div className="flex-1 h-14 rounded-xl border border-slate-900 bg-white flex items-center justify-center">
+                    </motion.button>
+                    <div className="flex-1 h-14 rounded-xl border-2 border-slate-900 bg-white flex items-center justify-center shadow-sm">
                       <span className="text-xl font-bold text-slate-900 tabular-nums">
                         {formatCurrency(bidAmount)}
                       </span>
                     </div>
-                    <button
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       onClick={() => adjustBid(true)}
-                      className="h-14 w-14 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-50 active:scale-95 transition-all shadow-sm"
+                      className="h-14 w-14 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 active:bg-slate-100 transition-all bg-white shadow-sm"
                     >
                       <Plus size={24} weight="bold" />
-                    </button>
+                    </motion.button>
                   </div>
-                  <div className="w-full relative h-1.5 bg-slate-100 rounded-full mb-6 overflow-hidden">
+                  
+                  {/* Timer Progress */}
+                  <div className="w-full relative h-2 bg-slate-100 rounded-full mb-4 overflow-hidden">
                     <motion.div
                       className={cn(
-                        "absolute top-0 left-0 h-full transition-colors duration-500",
+                        "absolute top-0 left-0 h-full rounded-full transition-colors duration-500",
                         isUrgent
                           ? "bg-red-500"
                           : isWarning
                             ? "bg-amber-500"
-                            : "bg-slate-950",
+                            : "bg-teal-600",
                       )}
                       initial={{ width: "100%" }}
                       animate={{ width: `${(timeLeft / 60) * 100}%` }}
                       transition={{ duration: 1, ease: "linear" }}
                     />
                   </div>
-                  <div className="flex items-center justify-center gap-2 text-slate-500">
+                  
+                  {/* Timer Display */}
+                  <div className="flex items-center justify-center gap-2 mb-10">
                     <Clock
-                      size={20}
+                      size={18}
                       weight="bold"
-                      className={cn(isUrgent && "text-red-500 animate-pulse")}
-                    />
-                    <span
                       className={cn(
-                        "text-xs font-bold uppercase tracking-[0.2em]",
-                        isUrgent && "text-red-500 font-black",
+                        "transition-colors",
+                        isUrgent ? "text-red-500 animate-pulse" : "text-slate-400"
                       )}
-                    >
-                      DRAFT CLOSES IN {timeLeft}S
+                    />
+                    <span className={cn(
+                      "text-sm font-bold uppercase tracking-[0.15em]",
+                      isUrgent ? "text-red-500" : "text-slate-500",
+                    )}>
+                      Draft Closes in {timeLeft}s
                     </span>
                   </div>
-                  <div className="mt-12 w-full px-4">
+                  
+                  {/* Bid Button */}
+                  <div className="w-full px-4">
                     <Button
-                      variant="primary"
+                      variant={isLeading ? "secondary" : "primary"}
                       className={cn(
-                        "w-full h-20 text-xl tracking-[0.1em] uppercase rounded-xl shadow-xl transition-all active:scale-[0.98]",
-                        highestBidder?.team_id === myTeam?.team_id
-                          ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                          : "bg-slate-950 hover:bg-slate-900 text-white",
+                        "w-full h-16 text-lg tracking-wide rounded-xl shadow-lg transition-all",
+                        isLeading 
+                          ? "bg-teal-100 text-teal-700 border-teal-200 hover:bg-teal-200" 
+                          : "bg-slate-900 hover:bg-slate-800 text-white"
                       )}
                       onClick={handlePlaceBid}
-                      disabled={
-                        highestBidder?.team_id === myTeam?.team_id ||
-                        timeLeft <= 0
-                      }
+                      disabled={isLeading || timeLeft <= 0 || loading}
+                      loading={loading}
                     >
-                      {highestBidder?.team_id === myTeam?.team_id
-                        ? "YOU ARE LEADING"
-                        : `CONFIRM BID ${formatCurrency(bidAmount)}`}
-                      <Gavel
-                        size={28}
-                        weight="fill"
-                        className="ml-3 opacity-40"
-                      />
+                      {isLeading ? (
+                        <>
+                          <CheckCircle size={24} weight="fill" />
+                          You Are Leading
+                        </>
+                      ) : (
+                        <>
+                          <Gavel size={24} weight="fill" />
+                          Confirm Bid {formatCurrency(bidAmount)}
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
-              </SectionCard>
+              </motion.div>
             </div>
           </div>
         )}
-        <div className="grid gap-6 lg:grid-cols-12 items-stretch mb-10">
+
+        {/* Bottom Section */}
+        <div className="grid gap-6 lg:grid-cols-12 items-stretch">
+          {/* Recently Sold */}
           <div className="lg:col-span-3">
-            <SectionCard
-              title="Recently Sold"
-              padded={false}
-              className="surface h-full"
-            >
+            <SectionCard title="Recently Sold" padded={false} className="h-full">
               <div className="divide-y divide-slate-100 max-h-[460px] overflow-y-auto no-scrollbar">
-                {recentlySold.length > 0 ? (
+                {initialLoading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="p-4 flex items-center gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-2 w-16" />
+                      </div>
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                  ))
+                ) : recentlySold.length > 0 ? (
                   recentlySold.map((p, i) => (
-                    <div
+                    <motion.div
                       key={i}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
                       className="p-4 flex items-center gap-3 hover:bg-slate-50 transition-colors"
                     >
-                      <div className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center border border-slate-100 shadow-sm bg-slate-950 text-white text-[11px] font-bold overflow-hidden">
+                      <div className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center border border-slate-100 shadow-sm bg-slate-900 text-white text-xs font-bold overflow-hidden">
                         {p.team_logo ? (
                           <img
-                            src={
-                              p.team_logo.startsWith("/")
-                                ? p.team_logo
-                                : `/uploads/${p.team_logo}`
-                            }
+                            src={p.team_logo.startsWith("/") ? p.team_logo : `/uploads/${p.team_logo}`}
                             alt="logo"
                             className="h-full w-full object-cover"
                           />
@@ -364,55 +425,71 @@ export default function FranchiseLiveAuction() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-ui-xs font-bold text-slate-900 truncate capitalize leading-tight">
+                        <p className="text-sm font-semibold text-slate-900 truncate capitalize">
                           {p.name}
                         </p>
-                        <p className="text-[10px] font-medium text-slate-500 truncate capitalize">
+                        <p className="text-xs font-medium text-slate-500 truncate capitalize">
                           {p.team_name}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[9px] font-bold text-slate-400 uppercase leading-none mb-1">
-                          Price
-                        </p>
-                        <p className="text-ui-xs font-bold text-slate-900">
+                        <p className="text-sm font-bold text-teal-600">
                           {formatCurrency(p.amount)}
                         </p>
                       </div>
-                    </div>
+                    </motion.div>
                   ))
                 ) : (
-                  <div className="p-16 text-center text-slate-400 italic text-[11px] flex flex-col items-center gap-2">
-                    <Handbag size={24} />
-                    No players sold yet.
+                  <div className="p-12 text-center text-slate-400 flex flex-col items-center gap-3">
+                    <Handbag size={28} weight="duotone" />
+                    <p className="text-sm">No players sold yet.</p>
                   </div>
                 )}
               </div>
             </SectionCard>
           </div>
+          
+          {/* Squad Tracker */}
           <div className="lg:col-span-9">
             <SectionCard
               title="Franchise Squad Tracker"
               sub="Real-time roster distribution"
-              className="surface h-full bg-white"
+              className="h-full"
             >
-              {teamStats.length > 0 ? (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+              {initialLoading ? (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="bg-slate-50 rounded-xl p-5 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-8 w-8 rounded-lg" />
+                        <Skeleton className="h-4 w-20" />
+                      </div>
+                      <div className="space-y-2">
+                        <Skeleton className="h-3 w-full" />
+                        <Skeleton className="h-3 w-full" />
+                        <Skeleton className="h-3 w-3/4" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : teamStats.length > 0 ? (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   {teamStats.map((team, idx) => (
-                    <div
+                    <motion.div
                       key={idx}
-                      className="bg-white rounded-md border border-slate-200 p-5 transition-all flex flex-col hover:shadow-md"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      whileHover={{ y: -4 }}
+                      className="bg-white rounded-xl border border-slate-200 p-5 transition-all hover:shadow-md"
                     >
-                      <div className="flex items-center justify-between mb-5 border-b border-slate-100 pb-3">
+                      {/* Team Header */}
+                      <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                         <div className="flex items-center gap-2">
-                          <div className="h-7 w-7 shrink-0 rounded-full bg-slate-950 flex items-center justify-center text-[9px] font-bold text-white shadow-sm border border-slate-100 overflow-hidden">
+                          <div className="h-8 w-8 shrink-0 rounded-lg bg-slate-900 flex items-center justify-center text-[9px] font-bold text-white overflow-hidden">
                             {team.logo_url ? (
                               <img
-                                src={
-                                  team.logo_url.startsWith("/")
-                                    ? team.logo_url
-                                    : `/uploads/${team.logo_url}`
-                                }
+                                src={team.logo_url.startsWith("/") ? team.logo_url : `/uploads/${team.logo_url}`}
                                 alt="logo"
                                 className="h-full w-full object-cover"
                               />
@@ -420,65 +497,36 @@ export default function FranchiseLiveAuction() {
                               team.team_name?.substring(0, 2)
                             )}
                           </div>
-                          <h4 className="text-[11px] font-bold text-slate-900 capitalize">
+                          <h4 className="text-sm font-semibold text-slate-900 capitalize truncate">
                             {team.team_name}
                           </h4>
                         </div>
-                        <span className="text-[10px] font-bold text-slate-900 border border-slate-200 rounded px-1.5 py-0.5 bg-slate-50">
+                        <span className="text-xs font-bold text-slate-600 border border-slate-200 rounded-full px-2 py-0.5 bg-slate-50">
                           {team.count || 0}/16
                         </span>
                       </div>
-                      <div className="space-y-2.5 flex-1">
-                        <div className="grid grid-cols-12 text-[10px] font-bold text-slate-400 uppercase mb-1 border-b border-slate-50 pb-1">
-                          <div className="col-span-8">Draft Role</div>
-                          <div className="col-span-2 text-center">Int</div>
-                          <div className="col-span-2 text-right">Tot</div>
-                        </div>
+                      
+                      {/* Role Stats */}
+                      <div className="space-y-2">
                         {[
-                          {
-                            label: "Batsman",
-                            int: team.batsman_os || 0,
-                            tot: team.batsman || 0,
-                          },
-                          {
-                            label: "Keepers",
-                            int: team.keepers_os || 0,
-                            tot: team.keepers || 0,
-                          },
-                          {
-                            label: "All Rounders",
-                            int: team.ar_os || 0,
-                            tot: team.ar || 0,
-                          },
-                          {
-                            label: "Bowlers",
-                            int: team.bowlers_os || 0,
-                            tot: team.bowlers || 0,
-                          },
-                        ].map((role, ridx) => (
-                          <div
-                            key={ridx}
-                            className="grid grid-cols-12 text-[11px] font-semibold capitalize py-0.5"
-                          >
-                            <div className="col-span-8 text-slate-600">
-                              {role.label}
-                            </div>
-                            <div className="col-span-2 text-center text-slate-900 font-bold">
-                              {role.int}
-                            </div>
-                            <div className="col-span-2 text-right text-slate-900 font-bold">
-                              {role.tot}
-                            </div>
+                          { label: "Batsman", val: team.batsman || 0 },
+                          { label: "Bowler", val: team.bowler || 0 },
+                          { label: "All-rounder", val: team.allrounder || 0 },
+                          { label: "Wicketkeeper", val: team.wicketkeeper || 0 },
+                        ].map((role) => (
+                          <div key={role.label} className="flex items-center justify-between text-xs">
+                            <span className="text-slate-500">{role.label}</span>
+                            <span className="font-semibold text-slate-700">{role.val}</span>
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               ) : (
-                <div className="p-20 text-center text-slate-400 italic text-[11px] flex flex-col items-center justify-center gap-3">
-                  <UsersThree size={32} />
-                  Awaiting team registration and drafting activity...
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Broadcast size={32} className="text-slate-300 mb-3" />
+                  <p className="text-sm text-slate-500">No team data available.</p>
                 </div>
               )}
             </SectionCard>

@@ -25,28 +25,30 @@ import { cn } from "../lib/format";
 import { toast as hotToast } from "react-hot-toast";
 
 export const Button = React.forwardRef(({ className, variant = "primary", size = "default", loading = false, loadingText, children, ...props }, ref) => {
-  const baseStyles = "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all whitespace-nowrap border border-transparent disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer relative overflow-hidden";
+  const baseStyles = "inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition-all whitespace-nowrap border disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer relative overflow-hidden";
   const variants = {
-    primary: "bg-blue-600 text-white shadow-lg hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-500/30 active:scale-[0.97]",
-    outline: "bg-transparent text-blue-400 border-blue-500/30 hover:bg-blue-500/10 hover:border-blue-400 active:bg-blue-500/20",
-    ghost: "bg-transparent text-gray-300 hover:bg-gray-700/30 hover:text-gray-100 active:bg-gray-700/50"
+    primary: "bg-teal-600 text-white border-teal-600 hover:bg-teal-700 hover:border-teal-700 active:scale-[0.98] shadow-sm hover:shadow-md",
+    secondary: "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200 hover:border-slate-300 active:scale-[0.98]",
+    outline: "bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98]",
+    ghost: "bg-transparent text-slate-600 border-transparent hover:bg-slate-100 hover:text-slate-900 active:bg-slate-200",
+    danger: "bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-700 active:scale-[0.98] shadow-sm"
   };
   const sizes = {
-    default: "h-10 px-5 text-ui-semibold",
-    sm: "h-8 px-3 text-ui-xs font-semibold",
-    icon: "h-9 w-9 justify-center"
+    default: "h-10 px-5 text-sm",
+    sm: "h-8 px-3 text-xs",
+    lg: "h-12 px-6 text-base",
+    icon: "h-10 w-10 justify-center"
   };
   return (
     <motion.button
-      whileHover={{ y: -2 }}
-      whileTap={{ scale: 0.95 }}
+      whileTap={{ scale: 0.98 }}
       type={props.type || "button"}
       ref={ref}
       disabled={loading || props.disabled}
       className={cn(baseStyles, variants[variant], sizes[size], className)}
       {...props}
     >
-      {loading ? (<><Spinner size={16} color={variant === "primary" ? "white" : "blue"} />{loadingText || children}</>) : children}
+      {loading ? (<><Spinner size={16} color={variant === "primary" ? "white" : "teal"} />{loadingText || children}</>) : children}
     </motion.button>
   );
 });
@@ -54,11 +56,10 @@ Button.displayName = "Button";
 
 export const Input = React.forwardRef(({ className, icon: Icon, ...props }, ref) => (
   <div className="relative w-full flex items-center group">
-    {Icon && <Icon size={18} className="absolute left-3 text-gray-400 pointer-events-none group-focus-within:text-blue-400 transition-colors" />}
-    <motion.input
+    {Icon && <Icon size={18} className="absolute left-3.5 text-slate-400 pointer-events-none group-focus-within:text-teal-600 transition-colors" />}
+    <input
       ref={ref}
-      whileFocus={{ scale: 1.01 }}
-      className={cn("w-full rounded-md border border-gray-700 bg-gray-900/50 h-10 px-3 text-ui text-white outline-none transition-all placeholder:text-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:bg-gray-900", Icon && "pl-10", className)}
+      className={cn("w-full rounded-lg border border-slate-200 bg-white h-11 px-4 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 hover:border-slate-300", Icon && "pl-11", className)}
       {...props}
     />
   </div>
@@ -67,17 +68,18 @@ Input.displayName = "Input";
 
 export const Badge = ({ children, variant = "neutral", className }) => {
   const variants = {
-    success: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
-    danger: "bg-red-500/20 text-red-300 border-red-500/30",
-    neutral: "bg-gray-700/40 text-gray-300 border-gray-600/40",
-    gold: "bg-amber-500/20 text-amber-300 border-amber-500/30",
-    accent: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+    success: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    danger: "bg-red-50 text-red-700 border-red-200",
+    neutral: "bg-slate-100 text-slate-600 border-slate-200",
+    warning: "bg-amber-50 text-amber-700 border-amber-200",
+    info: "bg-sky-50 text-sky-700 border-sky-200",
+    primary: "bg-teal-50 text-teal-700 border-teal-200",
   };
   return (
     <motion.span
-      initial={{ opacity: 0, scale: 0.8 }}
+      initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      className={cn("inline-flex items-center px-2.5 py-1 rounded-md text-ui-xs font-bold tracking-wide capitalize border backdrop-blur-sm", variants[variant] || variants.neutral, className)}
+      className={cn("inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold capitalize border", variants[variant] || variants.neutral, className)}
     >
       {children}
     </motion.span>
@@ -102,62 +104,75 @@ export const RoleBadge = ({ role, className }) => {
 };
 
 export const Table = React.forwardRef(({ className, ...props }, ref) => (
-  <div className="w-full overflow-auto relative border-t border-gray-700 no-scrollbar">
+  <div className="w-full overflow-auto relative no-scrollbar rounded-lg border border-slate-200">
     <table ref={ref} className={cn("w-full border-collapse text-left", className)} {...props} />
   </div>
 ));
 Table.displayName = "Table";
 
 export const TableHeader = React.forwardRef(({ className, ...props }, ref) => (
-  <thead ref={ref} className={cn("sticky top-0 z-10 bg-gray-900/50 border-b border-gray-700 backdrop-blur-sm", className)} {...props} />
+  <thead ref={ref} className={cn("sticky top-0 z-10 bg-slate-50 border-b border-slate-200", className)} {...props} />
 ));
 TableHeader.displayName = "TableHeader";
 
 export const TableBody = React.forwardRef(({ className, ...props }, ref) => (
-  <tbody ref={ref} className={cn("", className)} {...props} />
+  <tbody ref={ref} className={cn("bg-white divide-y divide-slate-100", className)} {...props} />
 ));
 TableBody.displayName = "TableBody";
 
 export const TableRow = React.forwardRef(({ className, ...props }, ref) => (
   <motion.tr
     ref={ref}
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    whileHover={{ backgroundColor: "rgba(59, 130, 246, 0.1)" }}
-    className={cn("border-b border-gray-700 transition-colors", className)}
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    whileHover={{ backgroundColor: "rgba(248, 250, 252, 1)" }}
+    className={cn("transition-colors", className)}
     {...props}
   />
 ));
 TableRow.displayName = "TableRow";
 
 export const TableHead = React.forwardRef(({ className, ...props }, ref) => (
-  <th ref={ref} className={cn("h-12 px-4 text-left align-middle text-sub text-gray-300", className)} {...props} />
+  <th ref={ref} className={cn("h-11 px-4 text-left align-middle text-xs font-semibold text-slate-500 uppercase tracking-wider", className)} {...props} />
 ));
 TableHead.displayName = "TableHead";
 
 export const TableCell = React.forwardRef(({ className, ...props }, ref) => (
-  <td ref={ref} className={cn("px-4 py-2 align-middle text-ui text-gray-300 h-12", className)} {...props} />
+  <td ref={ref} className={cn("px-4 py-3 align-middle text-sm text-slate-600", className)} {...props} />
 ));
 TableCell.displayName = "TableCell";
 
 export function StatCard({ title, value, sub, icon: Icon, tone = "default" }) {
+  const tones = {
+    default: "bg-slate-50 text-slate-600",
+    accent: "bg-teal-50 text-teal-600",
+    success: "bg-emerald-50 text-emerald-600",
+    warning: "bg-amber-50 text-amber-600",
+    danger: "bg-red-50 text-red-600",
+  };
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -8, transition: { duration: 0.2 } }}
-      transition={{ duration: 0.5 }}
-      className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-lg shadow-lg p-6 transition-all hover:shadow-xl hover:shadow-blue-500/20"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.4 }}
+      className="bg-white border border-slate-200 rounded-xl p-5 transition-all hover:shadow-lg hover:border-slate-300"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-sub text-gray-400 mb-2">{title}</p>
-          <p className="text-h1 text-white truncate tracking-tight font-bold">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{title}</p>
+          <p className="text-2xl text-slate-900 truncate tracking-tight font-bold">
             {typeof value === 'number' ? value.toLocaleString() : value}
           </p>
-          {sub ? <p className="mt-1 text-ui-xs text-gray-500 font-medium">{sub}</p> : null}
+          {sub ? <p className="mt-1.5 text-xs text-slate-500 font-medium">{sub}</p> : null}
         </div>
-        {Icon ? <motion.div whileHover={{ scale: 1.1, rotate: 5 }} className="shrink-0 text-blue-400"><Icon size={24} weight="regular" /></motion.div> : null}
+        {Icon ? (
+          <motion.div 
+            whileHover={{ scale: 1.1, rotate: 5 }} 
+            className={cn("shrink-0 h-10 w-10 rounded-lg flex items-center justify-center", tones[tone] || tones.default)}
+          >
+            <Icon size={20} weight="duotone" />
+          </motion.div>
+        ) : null}
       </div>
     </motion.div>
   );
@@ -165,36 +180,40 @@ export function StatCard({ title, value, sub, icon: Icon, tone = "default" }) {
 
 export function PageHeader({ title, subtitle, action }) {
   return (
-    <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
+    >
       <div>
-        <h1 className="text-h1 text-slate-900">{title}</h1>
-        {subtitle ? <p className="text-ui text-slate-900 mt-2">{subtitle}</p> : null}
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{title}</h1>
+        {subtitle ? <p className="text-sm text-slate-500 mt-1.5">{subtitle}</p> : null}
       </div>
       {action ? <div className="flex flex-wrap gap-3">{action}</div> : null}
-    </div>
+    </motion.div>
   );
 }
 
 export function SectionCard({ title, sub, action, children, padded = true, className, fullHeight = false }) {
   return (
     <motion.section
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className={cn("bg-gray-800/50 border border-gray-700 rounded-lg shadow-lg overflow-hidden flex flex-col backdrop-blur-sm transition-all hover:border-gray-600", fullHeight && "min-h-[calc(100vh-280px)] lg:min-h-[calc(100vh-220px)]", className)}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.4 }}
+      className={cn("bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col transition-all hover:shadow-md", fullHeight && "min-h-[calc(100vh-280px)] lg:min-h-[calc(100vh-220px)]", className)}
     >
       {(title || action || sub) && (
-        <div className="border-b border-gray-700 px-6 py-5 bg-gray-900/30 backdrop-blur-sm">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="border-b border-slate-100 px-6 py-4 bg-slate-50/50">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              {title ? <motion.h2 className="text-h3 text-white">{title}</motion.h2> : null}
-              {sub ? <p className="mt-1 text-ui text-gray-400">{sub}</p> : null}
+              {title ? <h2 className="text-base font-semibold text-slate-900">{title}</h2> : null}
+              {sub ? <p className="mt-0.5 text-sm text-slate-500">{sub}</p> : null}
             </div>
             {action ? <div className="flex flex-wrap gap-2.5">{action}</div> : null}
           </div>
         </div>
       )}
-      <div className={cn("flex-1 flex flex-col", padded && "p-6")}>{children}</div>
+      <div className={cn("flex-1 flex flex-col", padded && "p-5")}>{children}</div>
     </motion.section>
   );
 }
@@ -216,13 +235,12 @@ export function Modal({ open, onClose, title, children, width = 480 }) {
     <AnimatePresence>
       {open ? (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={onClose} />
-          <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="relative bg-gray-800 border border-gray-700 rounded-lg max-h-[90vh] overflow-hidden w-full flex flex-col shadow-2xl" style={{ maxWidth: width }}>
-            <div className="flex items-center justify-between border-b border-gray-700 px-5 py-3 bg-gray-900/50">
-              <h3 className="text-sm font-bold text-white capitalize tracking-wider">{title}</h3>
-              <button type="button" className="rounded-md p-1 text-gray-400 transition hover:bg-gray-700 hover:text-white" onClick={onClose}><X size={18} /></button>
-            </div>
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 custom-scrollbar"><div>{children}</div></div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="relative bg-white border border-slate-200 rounded-xl max-h-[90vh] overflow-hidden w-full flex flex-col shadow-2xl" style={{ maxWidth: width }}>
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+            <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+            <button type="button" className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600" onClick={onClose}><X size={18} /></button>
+          </div>
           </motion.div>
         </div>
       ) : null}
@@ -244,17 +262,78 @@ export function Field({ label, children, hint, error, icon: Icon }) {
   );
 }
 
-export function Spinner({ size = 20, color = "slate" }) {
-  const colors = { slate: "border-slate-300 border-t-slate-800", white: "border-white/20 border-t-white" };
-  return <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.75, repeat: Infinity, ease: "linear" }} className={cn("rounded-full border-2", colors[color] || colors.slate)} style={{ width: size, height: size }} />;
+export function Spinner({ size = 20, color = "teal" }) {
+  const colors = { 
+    teal: "border-teal-200 border-t-teal-600", 
+    slate: "border-slate-200 border-t-slate-600", 
+    white: "border-white/30 border-t-white" 
+  };
+  return <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.7, repeat: Infinity, ease: "linear" }} className={cn("rounded-full border-2", colors[color] || colors.teal)} style={{ width: size, height: size }} />;
 }
 
 export function EmptyState({ icon: Icon, title, sub }) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center h-full min-h-[400px]">
-      {Icon ? <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="mb-6 rounded-full bg-slate-100 p-6 text-slate-500"><Icon size={32} weight="light" /></motion.div> : null}
-      <h3 className="text-h3 text-slate-900 mb-2">{title}</h3>
-      {sub ? <p className="max-w-md text-ui text-slate-900">{sub}</p> : null}
+    <div className="flex-1 flex flex-col items-center justify-center px-6 py-16 text-center h-full min-h-[300px]">
+      {Icon ? (
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }} 
+          animate={{ scale: 1, opacity: 1 }} 
+          className="mb-5 rounded-2xl bg-slate-100 p-5 text-slate-400"
+        >
+          <Icon size={28} weight="duotone" />
+        </motion.div>
+      ) : null}
+      <h3 className="text-base font-semibold text-slate-900 mb-1.5">{title}</h3>
+      {sub ? <p className="max-w-sm text-sm text-slate-500">{sub}</p> : null}
+    </div>
+  );
+}
+
+export function Skeleton({ className, ...props }) {
+  return (
+    <div
+      className={cn("skeleton animate-shimmer", className)}
+      {...props}
+    />
+  );
+}
+
+export function SkeletonCard() {
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
+      <div className="flex items-center gap-4">
+        <div className="skeleton w-12 h-12 rounded-xl" />
+        <div className="flex-1 space-y-2">
+          <div className="skeleton h-4 w-3/4 rounded" />
+          <div className="skeleton h-3 w-1/2 rounded" />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <div className="skeleton h-3 w-full rounded" />
+        <div className="skeleton h-3 w-5/6 rounded" />
+      </div>
+    </div>
+  );
+}
+
+export function SkeletonTable({ rows = 5 }) {
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+      <div className="bg-slate-50 border-b border-slate-200 px-4 py-3">
+        <div className="skeleton h-4 w-32 rounded" />
+      </div>
+      <div className="divide-y divide-slate-100">
+        {Array.from({ length: rows }).map((_, i) => (
+          <div key={i} className="px-4 py-3 flex items-center gap-4">
+            <div className="skeleton w-10 h-10 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <div className="skeleton h-4 w-1/3 rounded" />
+              <div className="skeleton h-3 w-1/4 rounded" />
+            </div>
+            <div className="skeleton h-6 w-16 rounded-full" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -450,7 +529,7 @@ export function Drawer({ open, onClose, title, children, width = "max-w-md" }) {
       {open && (
         <>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-[2px]" />
-          <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className={cn("fixed inset-y-0 right-0 z-[70] w-full bg-white shadow-2xl flex flex-col border-l border-slate-200", width)}>
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className={cn("fixed inset-y-0 right-0 z-[70] w-full bg-white shadow-2xl flex flex-col border-l border-slate-200", width)}>
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
               <h2 className="text-h2 text-slate-900">{title}</h2>
               <button onClick={onClose} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors"><X size={20} weight="bold" /></button>
