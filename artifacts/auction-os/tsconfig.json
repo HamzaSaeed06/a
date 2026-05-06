@@ -10,6 +10,9 @@
     "allowImportingTsExtensions": true,
     "moduleResolution": "bundler",
     "types": ["node", "vite/client"],
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowJs": true,
     "paths": {
       "@/*": ["./src/*"]
     }

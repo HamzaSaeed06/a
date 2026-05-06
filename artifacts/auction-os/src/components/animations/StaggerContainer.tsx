@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { animationVariants } from "../lib/animations";
+import { animationVariants } from "../../lib/animations";
 
 interface StaggerContainerProps {
   children: React.ReactNode;

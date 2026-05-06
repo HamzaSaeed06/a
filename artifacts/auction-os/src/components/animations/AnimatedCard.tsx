@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { animationVariants } from "../lib/animations";
+import { animationVariants } from "../../lib/animations";
 
 interface AnimatedCardProps {
   children: React.ReactNode;
@@ -20,7 +20,7 @@ export const AnimatedCard: React.FC<AnimatedCardProps> = ({
       initial={animationVariants.scaleIn.initial}
       animate={animationVariants.scaleIn.animate}
       exit={animationVariants.scaleIn.exit}
-      transition={{ ...animationVariants.scaleIn.transition, delay }}
+      transition={animationVariants.scaleIn.transition}
       whileHover={hoverable ? { y: -8, transition: { duration: 0.2 } } : undefined}
       className={className}
       style={{

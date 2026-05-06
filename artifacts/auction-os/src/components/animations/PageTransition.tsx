@@ -1,6 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { animationVariants } from "../lib/animations";
+import { animationVariants } from "../../lib/animations";
 
 interface PageTransitionProps {
   children: React.ReactNode;
@@ -13,7 +13,7 @@ export const PageTransition: React.FC<PageTransitionProps> = ({ children, delay 
       initial={animationVariants.fadeInUp.initial}
       animate={animationVariants.fadeInUp.animate}
       exit={animationVariants.fadeInUp.exit}
-      transition={{ ...animationVariants.fadeInUp.transition, delay }}
+      transition={animationVariants.fadeInUp.transition}
       style={{ width: "100%" }}
     >
       {children}
