@@ -2,11 +2,10 @@ import express, { type Express } from "express";
 import { createServer } from "http";
 import { Server, type Socket } from "socket.io";
 import cors from "cors";
+import morgan from "morgan";
 import path from "path";
 import { fileURLToPath } from "url";
-import pinoHttp from "pino-http";
 import jwt, { type JwtPayload } from "jsonwebtoken";
-import { logger } from "./lib/logger.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -50,13 +49,7 @@ const io = new Server(httpServer, {
 
 app.set("io", io);
 
-app.use(pinoHttp({
-  logger,
-  serializers: {
-    req(req) { return { id: req.id, method: req.method, url: req.url?.split("?")[0] }; },
-    res(res) { return { statusCode: res.statusCode }; },
-  },
-}));
+app.use(morgan("dev"));
 app.use(cors({ origin: "*", credentials: false }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -74,7 +67,7 @@ app.use("/api/franchise",   franchiseRouter);
 app.use("/api/super-admin", superAdminRouter);
 
 app.get("/api/healthz", (_req, res) => res.json({ status: "ok" }));
-app.get("/", (_req, res) => res.json({ message: "🏏 Auction OS API is running!" }));
+app.get("/", (_req, res) => res.json({ message: "Auction OS API is running" }));
 
 const { auctionTimers } = await import("./state.js");
 const { default: db }   = await import("./db.js");
@@ -96,7 +89,7 @@ io.use((socket, next) => {
 io.on("connection", (rawSocket) => {
   const socket = rawSocket as AuthenticatedSocket;
   const socketUser = socket.socketUser;
-  logger.info({ id: socket.id, role: socketUser?.role }, "User connected");
+  console.log(`[socket] connected: ${socket.id} role=${socketUser?.role ?? "guest"}`);
 
   socket.on("join_auction", (auction_id: number) => {
     socket.join(`auction_${auction_id}`);

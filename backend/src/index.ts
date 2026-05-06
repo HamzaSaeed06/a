@@ -1,23 +1,13 @@
+import "dotenv/config";
 import httpServer from "./app.js";
-import { logger } from "./lib/logger.js";
 
-const rawPort = process.env["PORT"];
-
-if (!rawPort) {
-  throw new Error("PORT environment variable is required but was not provided.");
-}
-
-const port = Number(rawPort);
-
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
-}
+const port = Number(process.env.PORT) || 3001;
 
 httpServer.listen(port, () => {
-  logger.info({ port }, "🏏 Auction OS API Server listening");
+  console.log(`Auction OS API listening on http://localhost:${port}`);
 });
 
 httpServer.on("error", (err: Error) => {
-  logger.error({ err }, "Error starting server");
+  console.error("Error starting server:", err);
   process.exit(1);
 });
