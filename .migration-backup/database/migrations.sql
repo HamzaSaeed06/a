@@ -1,3 +1,0 @@
--- All migrations are now merged into ipl_auction_complete.sql
--- Run ONLY ipl_auction_complete.sql to set up the full database from scratch.
--- This file is kept for reference only.
