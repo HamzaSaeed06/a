@@ -1,0 +1,96 @@
+# ==========================================
+# Root & General Exclusions
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.log
+*.tmp
+*.swp
+
+# Environment variables & secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+*.cert
+
+# IDEs & Editors
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# ==========================================
+# Node.js / Express Backend & React Web
+# ==========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Production build outputs
+dist/
+build/
+.next/
+out/
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+
+# ==========================================
+# Flutter (Mobile & Web)
+# ==========================================
+# Flutter / Dart build artifacts
+**/.dart_tool/
+**/build/
+**/.pub-cache/
+**/.pub/
+**/pubspec.lock
+
+# Flutter Web specific
+**/doc/api/
+**/flutter_bootstrap.js
+
+# Android specific
+**/android/.gradle/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+**/android/*.iml
+**/android/*/*.iml
+
+# iOS / macOS specific
+**/ios/Pods/
+**/ios/Podfile.lock
+**/ios/.symlinks/
+**/ios/profile/
+**/ios/DerivedData/
+**/ios/*.xcworkspace
+!**/ios/Runner.xcworkspace
+**/ios/*/*.xcodeproj
+!**/ios/*/*.xcodeproj
+*.flutter-plugins
+*.flutter-plugin-dependencies
+
+# backend specific
+**/backend/node_modules/
+**/backend/doc
